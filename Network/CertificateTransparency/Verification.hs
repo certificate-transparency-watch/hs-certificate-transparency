@@ -1,4 +1,4 @@
-module Verification
+module Network.CertificateTransparency.Verification
     ( checkConsistencyProof
     , proof -- visible for testing
     ) where
@@ -10,7 +10,7 @@ import qualified Data.ByteString.Base64 as B64
 import Data.List (sortBy)
 import Data.Ord (comparing)
 
-import Types
+import Network.CertificateTransparency.Types
 
 checkConsistencyProof :: SignedTreeHead -> SignedTreeHead -> ConsistencyProof -> Bool
 checkConsistencyProof h1 h2 p = actual == expected

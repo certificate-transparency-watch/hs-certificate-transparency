@@ -1,4 +1,4 @@
-module Types where
+module Network.CertificateTransparency.Types where
 
 import Data.ByteString (ByteString)
 

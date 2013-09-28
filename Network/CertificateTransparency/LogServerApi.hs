@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module LogServerApi
+module Network.CertificateTransparency.LogServerApi
     ( getSth
     , getSthConsistency
     ) where
@@ -16,7 +16,7 @@ import Network.HTTP.Conduit
 import Network.HTTP.Types
 import Network.HTTP.Types.Header
 
-import Types
+import Network.CertificateTransparency.Types
 
 instance FromJSON SignedTreeHead where
     parseJSON (Object v) = SignedTreeHead <$>

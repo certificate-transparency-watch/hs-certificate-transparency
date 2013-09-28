@@ -2,9 +2,9 @@
 
 import qualified Data.ByteString.Base64 as B64
 
-import LogServerApi
-import Types
-import Verification
+import Network.CertificateTransparency.LogServerApi
+import Network.CertificateTransparency.Types
+import Network.CertificateTransparency.Verification
 
 old = SignedTreeHead
     { treeSize = 1979426

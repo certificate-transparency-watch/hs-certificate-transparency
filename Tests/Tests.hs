@@ -4,7 +4,7 @@ import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.HUnit
 
-import Verification
+import Network.CertificateTransparency.Verification
 
 main :: IO ()
 main = defaultMain tests
