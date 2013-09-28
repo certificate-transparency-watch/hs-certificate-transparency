@@ -2,6 +2,10 @@
 
 import qualified Data.ByteString.Base64 as B64
 
+import Control.Concurrent (threadDelay)
+import Control.Monad
+import Control.Monad.Loops (whileM_)
+import Data.IORef
 import Network.CertificateTransparency.LogServerApi
 import Network.CertificateTransparency.Types
 import Network.CertificateTransparency.Verification
@@ -14,13 +18,43 @@ old = SignedTreeHead
     }
 
 main = do
+    ref <- newIORef $ Just (old, Just True)
+
+    whileM_ (notFoundBadSth ref) $ do
+        sth <- readIORef ref
+        case sth of
+            Just (sth', _) -> do
+                next <- oneIteration sth'
+                print next
+                writeIORef ref next
+        threadDelay (2*60*1000*1000) -- every 2 minutes
+
+    badSth <- readIORef ref
+    print badSth
+
+notFoundBadSth :: IORef (Maybe (SignedTreeHead, Maybe Bool)) -> IO Bool
+notFoundBadSth ref = do
+    sth <- readIORef ref
+    return $ shouldContinue sth
+
+shouldContinue :: Maybe (SignedTreeHead, Maybe Bool) -> Bool
+shouldContinue (Just (sth, Just True))  = True
+shouldContinue (Just (sth, Just False)) = False
+shouldContinue (Just (sth, Nothing))    = True
+shouldContinue Nothing                = True
+
+
+oneIteration :: SignedTreeHead -> IO (Maybe (SignedTreeHead, Maybe Bool))
+oneIteration sth = do
     newSth <- getSth
 
     case newSth of
         Just new -> do
-            print $ show $ treeSize new
             consProof <- getSthConsistency old new
             case consProof of
-                Just consProof' -> print $ show $ checkConsistencyProof old new consProof'
-                _ -> error "q"
-        _ -> error "qq"
+                Just consProof' -> do
+                    if checkConsistencyProof old new consProof'
+                        then return $ Just (new, Just True)
+                        else return $ Just (new, Just False)
+                _ -> return $ Just (new, Nothing)
+        _ -> return Nothing
