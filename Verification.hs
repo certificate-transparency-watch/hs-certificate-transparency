@@ -1,5 +1,6 @@
 module Verification
     ( checkConsistencyProof
+    , proof -- visible for testing
     ) where
 
 import qualified Crypto.Hash.SHA256 as SHA256
