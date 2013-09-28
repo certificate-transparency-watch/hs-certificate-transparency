@@ -81,9 +81,7 @@ checkConsistencyProof h1 h2 p = actual == expected
         expected = rootHash h2
         actual = buildMerkleTree $ foo ++ Prelude.zip proofNodePositions (proofCP p)
         proofNodePositions = proof (treeSize h1) (treeSize h2)
-        foo = if isPowerOfTwo (treeSize h1)
-            then [(treeSize h1 `div` 2, rootHash h1)]
-            else []
+        foo = [(treeSize h1 `div` 2, rootHash h1) | isPowerOfTwo (treeSize h1)]
 
 type Hash = ByteString
 buildMerkleTree :: [(Int, Hash)] -> Hash
@@ -95,7 +93,7 @@ buildMerkleTree xs = go (Prelude.reverse $ sortBy (comparing fst) xs)
         go [(n, x)] = error $ "left with " ++ show (n, x)
         go ((x,xh):(y,yh):xs) = result where
             ((s, smaller), (l, larger)) = if x < y then ((x,xh), (y,yh)) else ((y,yh), (x,xh))
-            result = if (s + 1 /= l)
+            result = if s + 1 /= l
                     then error $ "shit: " ++ show (s, l)
                 else buildMerkleTree $ (x `div` 2, merkleCombine smaller larger) : xs
 
@@ -109,8 +107,8 @@ proof sizeA sizeB = subproof sizeA 1 (0, sizeB) True
     where
         subproof :: Int -> NodeId -> (Int,Int) -> Bool -> [NodeId]
         subproof m nodeId (n1,n2) b
-            | b == True  && m == (n2-n1) = []
-            | b == False && m == (n2-n1) = [nodeId]
+            | b     && m == (n2-n1) = []
+            | not b && m == (n2-n1) = [nodeId]
             | otherwise              =
                     let k = largestPowerOfTwoSmallerThan (n2-n1) in
                         if m <= k then
@@ -120,7 +118,7 @@ proof sizeA sizeB = subproof sizeA 1 (0, sizeB) True
 
 largestPowerOfTwoSmallerThan :: Integral a => a -> a
 largestPowerOfTwoSmallerThan n = if largestSmallerThanOrEqualTo == n then n `div` 2 else largestSmallerThanOrEqualTo
-    where largestSmallerThanOrEqualTo = round (2 ** (fromIntegral (floor $ logBase 2 $ fromIntegral n :: Int)))
+    where largestSmallerThanOrEqualTo = round (2 ** fromIntegral (floor $ logBase 2 $ fromIntegral n :: Int))
 
 isPowerOfTwo :: Integral a => a -> Bool
 isPowerOfTwo x = 2 * largestPowerOfTwoSmallerThan x == x
@@ -140,8 +138,7 @@ main = do
                     print $ show $ treeSize new
                     consProof <- getSthConsistency old new
                     case consProof of
-                        Just consProof' -> do
-                            print $ show $ checkConsistencyProof old new consProof'
+                        Just consProof' -> print $ show $ checkConsistencyProof old new consProof'
                         _ -> error "q"
                 _ -> error "qq"
         _ -> error "qqrr"
