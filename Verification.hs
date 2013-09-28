@@ -31,7 +31,7 @@ buildMerkleTree xs = go (reverse $ sortBy (comparing fst) xs)
         go ((x,xh):(y,yh):xs) = result where
             ((s, smaller), (l, larger)) = if x < y then ((x,xh), (y,yh)) else ((y,yh), (x,xh))
             result = if s + 1 /= l
-                    then error $ "shit: " ++ show (s, l)
+                    then error $ "not good: " ++ show (s, l)
                 else buildMerkleTree $ (x `div` 2, merkleCombine smaller larger) : xs
 
 merkleCombine :: Hash -> Hash -> Hash
