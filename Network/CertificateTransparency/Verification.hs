@@ -1,6 +1,7 @@
 module Network.CertificateTransparency.Verification
     ( checkConsistencyProof
     , proof -- visible for testing
+    , merkleCombine -- visible for testing
     ) where
 
 import qualified Crypto.Hash.SHA256 as SHA256
@@ -16,9 +17,11 @@ checkConsistencyProof :: SignedTreeHead -> SignedTreeHead -> ConsistencyProof ->
 checkConsistencyProof h1 h2 p = actual == expected
     where
         expected = rootHash h2
-        actual = buildMerkleTree $ foo ++ zip proofNodePositions (proofCP p)
+        actual = buildMerkleTree $ possibleLeftSubTree ++ zip proofNodePositions (proofCP p)
         proofNodePositions = proof (treeSize h1) (treeSize h2)
-        foo = [(treeSize h1 `div` 2, rootHash h1) | isPowerOfTwo (treeSize h1)]
+        possibleLeftSubTree =
+            [(smallestPowerOfTwoLargerThanOrEqualTo (treeSize h2) `div` (treeSize h1), rootHash h1)
+                    | isPowerOfTwo (treeSize h1)]
 
 type Hash = ByteString
 buildMerkleTree :: [(Int, Hash)] -> Hash
@@ -57,5 +60,9 @@ largestPowerOfTwoSmallerThan :: Integral a => a -> a
 largestPowerOfTwoSmallerThan n = if largestSmallerThanOrEqualTo == n then n `div` 2 else largestSmallerThanOrEqualTo
     where largestSmallerThanOrEqualTo = round (2 ** fromIntegral (floor $ logBase 2 $ fromIntegral n :: Int))
 
+smallestPowerOfTwoLargerThanOrEqualTo x = largestPowerOfTwoSmallerThan (2*x)
+
 isPowerOfTwo :: Integral a => a -> Bool
-isPowerOfTwo x = 2 * largestPowerOfTwoSmallerThan x == x
+isPowerOfTwo 1 = True
+isPowerOfTwo x = 2*half == x && isPowerOfTwo half
+    where half = x `div` 2
