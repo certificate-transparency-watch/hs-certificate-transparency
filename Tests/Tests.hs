@@ -38,7 +38,7 @@ whenFirstTreeIsSubTreeOfSecond = do
 
     let secondSTH = SignedTreeHead { treeSize = 2
                                    , timestamp = 42+20
-                                   , rootHash = merkleCombine cert1 cert2
+                                   , rootHash = merkleHashCombine cert1 cert2
                                    , treeHeadSignature = (B64.encode . BSC.pack) "sig2"
                                    }
 

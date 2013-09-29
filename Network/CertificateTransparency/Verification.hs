@@ -1,7 +1,7 @@
 module Network.CertificateTransparency.Verification
     ( checkConsistencyProof
     , proof -- visible for testing
-    , merkleCombine -- visible for testing
+    , merkleHashCombine -- visible for testing
     ) where
 
 import qualified Crypto.Hash.SHA256 as SHA256
@@ -17,27 +17,25 @@ checkConsistencyProof :: SignedTreeHead -> SignedTreeHead -> ConsistencyProof ->
 checkConsistencyProof h1 h2 p = actual == expected
     where
         expected = rootHash h2
-        actual = buildMerkleTree $ possibleLeftSubTree ++ zip proofNodePositions (proofCP p)
+        actual = merkleTreeRootHash $ buildMerkleTree $ possibleLeftSubTree ++ zip proofNodePositions (proofCP p)
         proofNodePositions = proof (treeSize h1) (treeSize h2)
         possibleLeftSubTree =
             [(smallestPowerOfTwoLargerThanOrEqualTo (treeSize h2) `div` (treeSize h1), rootHash h1)
                     | isPowerOfTwo (treeSize h1)]
 
-type Hash = ByteString
-buildMerkleTree :: [(Int, Hash)] -> Hash
-buildMerkleTree xs = case buildMT (reverse $ sortBy (comparing fst) xs) of
-    Empty -> error "foo"
-    MerkleTree _ _ h _ -> h
-
 data MerkleTree = Empty
                 | MerkleTree MerkleTree Int Hash MerkleTree
 
-buildMT :: [(Int, Hash)] -> MerkleTree
-buildMT xs = foldl f Empty xs
+merkleTreeRootHash :: MerkleTree -> Hash
+merkleTreeRootHash (MerkleTree _ 1 h _) = h
+
+type Hash = ByteString
+buildMerkleTree :: [(Int, Hash)] -> MerkleTree
+buildMerkleTree xs = foldl f Empty (reverse $ sortBy (comparing fst) xs)
     where
         f :: MerkleTree -> (Int, Hash) -> MerkleTree
         f Empty (i, h)                     = MerkleTree Empty i h Empty
-        f prev@(MerkleTree _ j _ _ ) (i, h) = merkleCombine' l r
+        f prev@(MerkleTree _ j _ _ ) (i, h) = merkleCombine l r
               where new = MerkleTree Empty i h Empty
                     (l, r) = if i + 1 == j -- i is left child
                                then (new, prev)
@@ -52,7 +50,7 @@ merkleCombine _ Empty = error "nope"
 merkleCombine Empty _ = error "nope"
 merkleCombine l@(MerkleTree _ i h _) r@(MerkleTree _ j h2 _) = if i+1 /= j
     then error "foo"
-    else MerkleTree l (i `div` 2) (merkleCombine h h2) r
+    else MerkleTree l (i `div` 2) (merkleHashCombine h h2) r
 
 merkleHashCombine :: Hash -> Hash -> Hash
 merkleHashCombine x y = SHA256.hash $ BS.concat [BS.singleton 1, x, y]
