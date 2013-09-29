@@ -25,20 +25,37 @@ checkConsistencyProof h1 h2 p = actual == expected
 
 type Hash = ByteString
 buildMerkleTree :: [(Int, Hash)] -> Hash
-buildMerkleTree xs = go (reverse $ sortBy (comparing fst) xs)
-    where
-        go :: [(Int, Hash)] -> Hash
-        go [] = error "empty"
-        go [(1, x)] = x
-        go [(n, x)] = error $ "left with " ++ show (n, x)
-        go ((x,xh):(y,yh):xs) = result where
-            ((s, smaller), (l, larger)) = if x < y then ((x,xh), (y,yh)) else ((y,yh), (x,xh))
-            result = if s + 1 /= l
-                    then error $ "not good: " ++ show (s, l)
-                else buildMerkleTree $ (x `div` 2, merkleCombine smaller larger) : xs
+buildMerkleTree xs = case buildMT (reverse $ sortBy (comparing fst) xs) of
+    Empty -> error "foo"
+    MerkleTree _ _ h _ -> h
 
-merkleCombine :: Hash -> Hash -> Hash
-merkleCombine x y = SHA256.hash $ BS.concat [BS.singleton 1, x, y]
+data MerkleTree = Empty
+                | MerkleTree MerkleTree Int Hash MerkleTree
+
+buildMT :: [(Int, Hash)] -> MerkleTree
+buildMT xs = foldl f Empty xs
+    where
+        f :: MerkleTree -> (Int, Hash) -> MerkleTree
+        f Empty (i, h)                     = MerkleTree Empty i h Empty
+        f prev@(MerkleTree _ j _ _ ) (i, h) = merkleCombine' l r
+              where new = MerkleTree Empty i h Empty
+                    (l, r) = if i + 1 == j -- i is left child
+                               then (new, prev)
+                             else if j+1 == i -- j is left child
+                                then (prev, new)
+                             else
+                                error "nope"
+
+
+merkleCombine :: MerkleTree -> MerkleTree -> MerkleTree
+merkleCombine _ Empty = error "nope"
+merkleCombine Empty _ = error "nope"
+merkleCombine l@(MerkleTree _ i h _) r@(MerkleTree _ j h2 _) = if i+1 /= j
+    then error "foo"
+    else MerkleTree l (i `div` 2) (merkleCombine h h2) r
+
+merkleHashCombine :: Hash -> Hash -> Hash
+merkleHashCombine x y = SHA256.hash $ BS.concat [BS.singleton 1, x, y]
 
 type NodeId = Int
 
