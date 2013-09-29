@@ -9,6 +9,8 @@ import Data.IORef
 import Network.CertificateTransparency.LogServerApi
 import Network.CertificateTransparency.Types
 import Network.CertificateTransparency.Verification
+import System.Log.Handler.Syslog
+import System.Log.Logger
 
 old = SignedTreeHead
     { treeSize = 1979426
@@ -18,6 +20,7 @@ old = SignedTreeHead
     }
 
 main = do
+    setupLogging
     ref <- newIORef $ Just (old, Just True)
 
     whileM_ (notFoundBadSth ref) $ do
@@ -25,12 +28,20 @@ main = do
         case sth of
             Just (sth', _) -> do
                 next <- oneIteration sth'
-                print next
+                debugM "main" $ "Iteration complete: " ++ show next
                 writeIORef ref next
         threadDelay (2*60*1000*1000) -- every 2 minutes
 
     badSth <- readIORef ref
-    print badSth
+    errorM "main" $ "The following STH failed its consistency check: " ++ show badSth
+
+setupLogging :: IO ()
+setupLogging = do
+    removeAllHandlers
+    s <- openlog "ct-consistency-checker" [PID] DAEMON DEBUG
+    updateGlobalLogger rootLoggerName (addHandler s)
+    updateGlobalLogger rootLoggerName (setLevel DEBUG)
+    infoM "main" "Logger started."
 
 notFoundBadSth :: IORef (Maybe (SignedTreeHead, Maybe Bool)) -> IO Bool
 notFoundBadSth ref = do

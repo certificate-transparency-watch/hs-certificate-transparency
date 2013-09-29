@@ -22,6 +22,7 @@ executable hs-certificate-transparency
                      , base64-bytestring == 1.0.0.*
                      , bytestring == 0.10.*
                      , cryptohash == 0.10.*
+                     , hslogger == 1.2.*
                      , http-conduit == 1.9.*
                      , http-types == 0.8.*
                      , monad-loops == 0.4.*

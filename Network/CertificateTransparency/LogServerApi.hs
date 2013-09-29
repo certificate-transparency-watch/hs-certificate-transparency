@@ -10,11 +10,14 @@ import Data.Aeson
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Base64 as B64
+import qualified Data.ByteString.Char8 as BSC
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.ByteString.Lazy.Char8 as BSLC
 import qualified Data.Text as T
 import Network.HTTP.Conduit
 import Network.HTTP.Types
 import Network.HTTP.Types.Header
+import System.Log.Logger (debugM)
 
 import Network.CertificateTransparency.Types
 
@@ -48,16 +51,25 @@ getSth' = do
                        }
     res <- withManager $ httpLbs req'
 
-    return $ responseBody res
+    let r =  responseBody res
+
+    debugM "get-sth" $ BSLC.unpack r
+
+    return r
 
 
 getSthConsistency :: SignedTreeHead -> SignedTreeHead -> IO (Maybe ConsistencyProof)
 getSthConsistency h1 h2 = do
-    initReq <- parseUrl $ "https://ct.googleapis.com/pilot/ct/v1/get-sth-consistency?first=" ++ show (treeSize h1) ++ "&second=" ++ show (treeSize h2)
+    let url = "https://ct.googleapis.com/pilot/ct/v1/get-sth-consistency?first=" ++ show (treeSize h1) ++ "&second=" ++ show (treeSize h2)
+    initReq <- parseUrl url
 
     res <- withManager $ httpLbs initReq
 
-    let consProof = decode $ responseBody res :: Maybe ConsistencyProof
+    let r = responseBody res
+
+    debugM url $ BSLC.unpack r
+
+    let consProof = decode r :: Maybe ConsistencyProof
 
     return $ decodeBase64ConsProof <$> consProof
 
