@@ -8,7 +8,9 @@ import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Char8 as BSC
 import Test.Framework
 import Test.Framework.Providers.HUnit
+import Test.Framework.Providers.QuickCheck2
 import Test.HUnit
+import Test.QuickCheck
 
 import Network.CertificateTransparency.MerkleTree
 import Network.CertificateTransparency.Types
@@ -21,8 +23,16 @@ tests = [ testGroup "Consistency proof"
               [ testGroup "examples in RFC6962" consistencyProofsInRfc6962
               , testCase "first tree subtree of second" whenFirstTreeIsSubTreeOfSecond
               , testCase "check first tree" checkAllElementsFromFirstTreeAreInSecond
+              , testProperty "number of nodes in proof is logarithmic" propNodesInProofIsLogarithmic
               ]
         ]
+
+-- "The number of nodes in the resulting proof is bounded above by
+--  ceil(log2(n)) + 1.)" -- http://tools.ietf.org/html/rfc6962#section-2.1.2
+propNodesInProofIsLogarithmic a b =
+    (a < b && a >= 1) ==>
+    length (proof a b) <= limit
+        where limit = 1 + (ceiling $ logBase 2 $ fromIntegral b)
 
 consistencyProofsInRfc6962 = [
                                testCase "6 7" $ proof 6 7 @?= [6,7,2]

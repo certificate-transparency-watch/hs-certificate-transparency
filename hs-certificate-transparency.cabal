@@ -33,8 +33,10 @@ test-suite tests
     hs-source-dirs: Tests, .
     main-is:        Tests.hs
     build-depends:  HUnit
+                  , QuickCheck
                   , test-framework
                   , test-framework-hunit
+                  , test-framework-quickcheck2
                   , base ==4.6.*
                   , aeson == 0.6.*
                   , base64-bytestring == 1.0.0.*
