@@ -1,7 +1,10 @@
 module Network.CertificateTransparency.MerkleTree
     ( buildMerkleTree
     , merkleTreeRootHash
+    , merkleCombine -- visible for testing
     , merkleHashCombine -- visible for testing
+    , MerkleTree(..)
+    , merkleTreeHash
     ) where
 
 import qualified Crypto.Hash.SHA256 as SHA256
@@ -12,9 +15,12 @@ import Data.Ord (comparing)
 
 data MerkleTree = Empty
                 | MerkleTree MerkleTree Int Hash MerkleTree
+                deriving (Show)
 
 merkleTreeRootHash :: MerkleTree -> Hash
 merkleTreeRootHash (MerkleTree _ 1 h _) = h
+
+merkleTreeHash (MerkleTree _ _ h _) = h
 
 type Hash = ByteString
 buildMerkleTree :: [(Int, Hash)] -> MerkleTree
