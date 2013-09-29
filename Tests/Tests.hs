@@ -9,6 +9,7 @@ import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.HUnit
 
+import Network.CertificateTransparency.MerkleTree
 import Network.CertificateTransparency.Types
 import Network.CertificateTransparency.Verification
 
