@@ -30,12 +30,10 @@ buildMerkleTree xs = foldl f Empty (reverse $ sortBy (comparing fst) xs)
         f Empty (i, h)                     = MerkleTree Empty i h Empty
         f prev@(MerkleTree _ j _ _ ) (i, h) = merkleCombine l r
               where new = MerkleTree Empty i h Empty
-                    (l, r) = if i + 1 == j -- i is left child
-                               then (new, prev)
-                             else if j+1 == i -- j is left child
-                                then (prev, new)
-                             else
-                                error "nope"
+                    (l, r)
+                        | i + 1 == j = (new, prev) -- i is left childthen
+                        | j + 1 == i = (prev, new) -- j is left child
+                        | otherwise  = error "nope"
 
 merkleCombine :: MerkleTree -> MerkleTree -> MerkleTree
 merkleCombine _ Empty = error "nope"

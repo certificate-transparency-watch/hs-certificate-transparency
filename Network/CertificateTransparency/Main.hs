@@ -2,6 +2,7 @@
 
 import qualified Data.ByteString.Base64 as B64
 
+import Control.Applicative ((<$>))
 import Control.Concurrent (threadDelay)
 import Control.Monad
 import Control.Monad.Loops (whileM_)
@@ -62,10 +63,5 @@ oneIteration sth = do
     case newSth of
         Just new -> do
             consProof <- getSthConsistency old new
-            case consProof of
-                Just consProof' -> do
-                    if checkConsistencyProof old new consProof'
-                        then return $ Just (new, Just True)
-                        else return $ Just (new, Just False)
-                _ -> return $ Just (new, Nothing)
-        _ -> return Nothing
+            return . Just $ (new, checkConsistencyProof old new <$> consProof)
+        Nothing  -> return Nothing

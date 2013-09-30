@@ -28,10 +28,7 @@ checkConsistencyProof h1 h2 p = firstTreeIsValid && secondTreeIsValid
                             | isPowerOfTwo (treeSize h1)]
 
         build :: [(Int, ByteString)] -> ByteString
-        build xs = (foldr1 f . map snd . sortBy (comparing fst) . filter (\(i, _) -> even i)) xs
-            where
-                f :: ByteString -> ByteString -> ByteString
-                f h acc = merkleHashCombine h acc
+        build = foldr1 merkleHashCombine . map snd . sortBy (comparing fst) . filter (\(i, _) -> even i)
 
 type NodeId = Int
 
