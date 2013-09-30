@@ -4,46 +4,20 @@ module Network.CertificateTransparency.LogServerApi
     , getSthConsistency
     ) where
 
-import Control.Applicative ((<$>), (<*>))
-import Control.Monad
 import Data.Aeson
 import Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Base64 as B64
-import qualified Data.ByteString.Char8 as BSC
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Lazy.Char8 as BSLC
-import qualified Data.Text as T
 import Network.HTTP.Conduit
 import Network.HTTP.Types
 import Network.HTTP.Types.Header
 import System.Log.Logger (debugM)
 
+import Network.CertificateTransparency.Parser
 import Network.CertificateTransparency.Types
-
-instance FromJSON SignedTreeHead where
-    parseJSON (Object v) = SignedTreeHead <$>
-                            v .: "tree_size" <*>
-                            v .: "timestamp" <*>
-                            v .: "sha256_root_hash" <*>
-                            v .: "tree_head_signature"
-    parseJSON _          = mzero
-
-
-instance FromJSON ConsistencyProof where
-    parseJSON (Object v) = ConsistencyProof <$>
-                            v .: "consistency"
-    parseJSON _          = mzero
 
 getSth :: IO (Maybe SignedTreeHead)
 getSth = do
-    rawNewSth <- getSth'
-    let newSth' = decode rawNewSth :: Maybe SignedTreeHead
-    return $ decodeBase64Sth <$> newSth'
-
-
-getSth' :: IO BSL.ByteString
-getSth' = do
     initReq <- parseUrl "https://ct.googleapis.com/pilot/ct/v1/get-sth"
 
     let req' = initReq { secure = True
@@ -51,11 +25,11 @@ getSth' = do
                        }
     res <- withManager $ httpLbs req'
 
-    let r =  responseBody res
+    let rawNewSth =  responseBody res
 
-    debugM "get-sth" $ BSLC.unpack r
+    debugM "get-sth" $ BSLC.unpack rawNewSth
 
-    return r
+    return (decode rawNewSth :: Maybe SignedTreeHead)
 
 
 getSthConsistency :: SignedTreeHead -> SignedTreeHead -> IO (Maybe ConsistencyProof)
@@ -69,12 +43,4 @@ getSthConsistency h1 h2 = do
 
     debugM url $ BSLC.unpack r
 
-    let consProof = decode r :: Maybe ConsistencyProof
-
-    return $ decodeBase64ConsProof <$> consProof
-
-decodeBase64ConsProof :: ConsistencyProof -> ConsistencyProof
-decodeBase64ConsProof cp = ConsistencyProof { proofCP = map B64.decodeLenient (proofCP cp) }
-
-decodeBase64Sth :: SignedTreeHead -> SignedTreeHead
-decodeBase64Sth sth = sth { rootHash = B64.decodeLenient (rootHash sth)}
+    return (decode r :: Maybe ConsistencyProof)
