@@ -5,8 +5,8 @@ name:                hs-certificate-transparency
 version:             0.1.0.0
 -- synopsis:            
 -- description:         
--- license:             
--- license-file:        LICENSE
+license:             Apache-2.0
+license-file:        LICENSE
 -- author:              
 maintainer:          tom@tom-fitzhenry.me.uk
 -- copyright:           
