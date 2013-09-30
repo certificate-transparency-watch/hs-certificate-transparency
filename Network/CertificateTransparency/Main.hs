@@ -6,8 +6,6 @@ import Control.Applicative ((<$>))
 import Control.Concurrent (threadDelay)
 import Control.Monad
 import Control.Monad.Loops (whileM_)
-import Control.Monad.Maybe
-import Control.Monad.Trans
 import Data.Ord
 import Data.IORef
 import Network.CertificateTransparency.LogServerApi
@@ -59,7 +57,7 @@ main = do
         updateAndCheck (prevSth, prevB) = do
             nextSth' <- getSth
             case nextSth' of
-                Just nextSth -> if (comparing treeSize prevSth nextSth == LT)
+                Just nextSth -> if comparing treeSize prevSth nextSth == LT
                                 then do
                                     consProof <- getSthConsistency prevSth nextSth
                                     let r = (nextSth,
