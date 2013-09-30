@@ -23,6 +23,7 @@ tests = [ testGroup "Consistency proof"
               [ testGroup "examples in RFC6962" consistencyProofsInRfc6962
               , testCase "first tree subtree of second" whenFirstTreeIsSubTreeOfSecond
               , testCase "check first tree" checkAllElementsFromFirstTreeAreInSecond
+              , testCase "example from google's log" consistencyProofFromGoogle
               , testProperty "number of nodes in proof is logarithmic" propNodesInProofIsLogarithmic
               ]
         ]
@@ -108,6 +109,30 @@ checkAllElementsFromFirstTreeAreInSecond = do
                          }
 
     checkConsistencyProof firstSTH secondSTH expectedProof @?= False
+
+-- 
+consistencyProofFromGoogle = do
+    let prev = SignedTreeHead {
+          treeSize = 1979426
+        , timestamp = 1368891548960
+        , rootHash = B64.decodeLenient "8UkrV2kjoLcZ5fP0xxVtpsSsWAnvcV8aPv39vh96J2o="
+        , treeHeadSignature = B64.decodeLenient "BAMASDBGAiEAxv3KBaV64XsRfqX4L8D1RGeIpEaPMXf+zdVXJ1hU7ZkCIQDmkXZhX/b52LRnq+9LKI/XYr1hgT6uYmiwRGn7DCx3+A=="
+        }
+
+    let next = SignedTreeHead {
+          treeSize  = 2741521
+        , timestamp = 1380552724453
+        , rootHash  = B64.decodeLenient "qRAV/VJicI8FZLfTJIU5kVFJQZ3aBizlSPRErTX61i4="
+        , treeHeadSignature = B64.decodeLenient "BAMASDBGAiEAo2+OFDFjTdd61sDQEMXR14fJNTNin1wpJnTI9zSLnNYCIQCWEhHjQ7IIN8TuI6GPdvdJhDT/P56k+WxsoTPPLbgtsg=="
+        }
+
+    let proof = ConsistencyProof {
+          proofCP = map B64.decodeLenient
+            ["bblNpKGupBqDDigHMxwoXaBS05WnL2fj/qttPZGMzEI=","bO+5cy7VpbDGxdZLu5eh2rWNHOPxel8EzDHWoErDgS8=","3ePcgS9maoFBK52qhDyp5bpxOlOcfVMMGXSljHuWXAk=","YCnDylBZ8s3TyvzhgakvF2otmQdaM38qrNSyTWYfdAA=","dwhlYo0TyghF1Xq20renXFdKgj7XovvHfGGRgfW+iPE=","lmfI7Oy55S63pftxM8w1zXJb3h/Mtm8sPFkjtjtNChk=","FulAwmSb/SOe5/91dqeKayrd940GqPkn3hSi+4YitJE=","2NNhcfXetpWMlojc5PzJKvFWS25CMvKNvac41W6qoCA=","PMmfZMhO99mb1YUdjpWd6WMfUiJaGR/SQVLRnY7OTFQ=","8VQA+sR+AOIl1QOL021d/r3F/pFle5Cbh3SCeOikajY=","o+rk3kXIlwQY94iKb+RWmBD0hjGMCKYwtB/Htukoq/k=","r1cXdTQkFjUBOA4P99OpuLodYaIODm0xrWp4KgTN3Kg=","FkR0Luer+8Jjs7vgyCC+IRvcLF/Ms4cVCsHEDYLFJFE=","zPdQENIQJyo4slG1tPbWXJaRiijF3x8bt5cVt3DX6ug=","r0IRKDmmkHUOwluAiE7ZnQbCanCMVaHfXKGxFFlZV7k=","CStYNvBk3GSGsIqgbfzCI9cyJEu6WvtOX2XjHjNp99E=","TQECqBH0gDfmZJS3oY7wJd6y5fGpnT8JQ7lTCFvXe1U=","wSXPL0cesW52hzcTGS7kKR/sZCT64dhOe5l9wNqew2I=","eGwFccrO/9bveiiZEhcn6otGIH++Y7WamctkvuyoLF4=","qIqRIjnAB/zkrfX1aCaoZ0TAU6AgzYMfopCMUcRZcIg=","69MEfs3audDUKHQb+24jmupCgw8ASrtMgifycVb5k+M=","icxy5tOEVLPVPbunfkKGhqmpsPChciANfHEi520psYE="]
+        }
+
+    checkConsistencyProof prev next proof @?= True
+
 
 leaf :: Int -> ByteString -> MerkleTree
 leaf i h = MerkleTree Empty i h Empty
