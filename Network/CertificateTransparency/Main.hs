@@ -6,6 +6,8 @@ import Control.Applicative ((<$>))
 import Control.Concurrent (threadDelay)
 import Control.Monad
 import Control.Monad.Loops (whileM_)
+import Control.Monad.Maybe
+import Control.Monad.Trans
 import Data.IORef
 import Network.CertificateTransparency.LogServerApi
 import Network.CertificateTransparency.Types
@@ -56,12 +58,12 @@ shouldContinue (Just (sth, Nothing))    = True
 shouldContinue Nothing                = True
 
 
-oneIteration :: SignedTreeHead -> IO (Maybe (SignedTreeHead, Maybe Bool))
-oneIteration sth = do
-    newSth <- getSth
 
-    case newSth of
-        Just new -> do
+oneIteration :: SignedTreeHead -> IO (Maybe (SignedTreeHead, Maybe Bool))
+oneIteration old = runMaybeT $ MaybeT getSth >>= lift . (checkConsistency old)
+    where
+        checkConsistency :: SignedTreeHead -> SignedTreeHead -> IO (SignedTreeHead, Maybe Bool)
+        checkConsistency old new = do
             consProof <- getSthConsistency old new
-            return . Just $ (new, checkConsistencyProof old new <$> consProof)
-        Nothing  -> return Nothing
+            return (new, checkConsistencyProof old new <$> consProof)
+
