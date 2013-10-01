@@ -5,15 +5,13 @@ module Network.CertificateTransparency.LogServerApi
     ) where
 
 import Data.Aeson
-import Data.ByteString (ByteString)
-import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Lazy.Char8 as BSLC
 import Network.HTTP.Conduit
-import Network.HTTP.Types
-import Network.HTTP.Types.Header
+import Network.HTTP.Types()
+import Network.HTTP.Types.Header()
 import System.Log.Logger (debugM)
 
-import Network.CertificateTransparency.Parser
+import Network.CertificateTransparency.Parser()
 import Network.CertificateTransparency.Types
 
 getSth :: IO (Maybe SignedTreeHead)

@@ -1,3 +1,4 @@
+{-# LANGUAGE Safe #-}
 module Network.CertificateTransparency.Types where
 
 import Data.ByteString (ByteString)

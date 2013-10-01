@@ -1,10 +1,10 @@
+{-# LANGUAGE Safe #-}
 module Network.CertificateTransparency.MerkleTree
     ( buildMerkleTree
     , merkleTreeRootHash
     , merkleCombine -- visible for testing
     , merkleHashCombine -- visible for testing
     , MerkleTree(..)
-    , merkleTreeHash
     ) where
 
 import qualified Crypto.Hash.SHA256 as SHA256
@@ -17,10 +17,9 @@ data MerkleTree = Empty
                 | MerkleTree MerkleTree Int Hash MerkleTree
                 deriving (Show)
 
-merkleTreeRootHash :: MerkleTree -> Hash
-merkleTreeRootHash (MerkleTree _ 1 h _) = h
-
-merkleTreeHash (MerkleTree _ _ h _) = h
+merkleTreeRootHash :: MerkleTree -> Maybe Hash
+merkleTreeRootHash (MerkleTree _ 1 h _) = Just h
+merkleTreeRootHash _                    = Nothing
 
 type Hash = ByteString
 buildMerkleTree :: [(Int, Hash)] -> MerkleTree

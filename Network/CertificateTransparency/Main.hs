@@ -4,7 +4,6 @@ import qualified Data.ByteString.Base64 as B64
 
 import Control.Applicative ((<$>))
 import Control.Concurrent (threadDelay)
-import Control.Monad
 import Control.Monad.Loops (whileM_)
 import Data.Ord
 import Data.IORef
@@ -14,6 +13,7 @@ import Network.CertificateTransparency.Verification
 import System.Log.Handler.Syslog
 import System.Log.Logger
 
+knownGoodSth :: SignedTreeHead
 knownGoodSth = SignedTreeHead
     { treeSize = 1979426
     , timestamp = 1368891548960
@@ -21,6 +21,7 @@ knownGoodSth = SignedTreeHead
     , treeHeadSignature = B64.decodeLenient "BAMASDBGAiEAxv3KBaV64XsRfqX4L8D1RGeIpEaPMXf+zdVXJ1hU7ZkCIQDmkXZhX/b52LRnq+9LKI/XYr1hgT6uYmiwRGn7DCx3+A=="
     }
 
+main :: IO ()
 main = do
     setupLogging
 
@@ -50,8 +51,8 @@ main = do
             return $ shouldContinue sth
                 where
                     shouldContinue :: (SignedTreeHead, Maybe Bool) -> Bool
-                    shouldContinue (sth, Just b)  = b
-                    shouldContinue (sth, Nothing) = True
+                    shouldContinue (_, Just b)  = b
+                    shouldContinue (_, Nothing) = True
 
         updateAndCheck :: (SignedTreeHead, Maybe Bool) -> IO (SignedTreeHead, Maybe Bool)
         updateAndCheck (prevSth, prevB) = do

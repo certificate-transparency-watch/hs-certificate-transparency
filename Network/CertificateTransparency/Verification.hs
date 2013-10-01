@@ -1,3 +1,4 @@
+{-# LANGUAGE Safe #-}
 module Network.CertificateTransparency.Verification
     ( checkConsistencyProof
     , proof -- visible for testing
@@ -17,7 +18,7 @@ checkConsistencyProof h1 h2 p = firstTreeIsValid && secondTreeIsValid
         -- I suspect it's non-broken at least, because it passes for consistency proofs on
         -- Google's 22mill+ log server.
         firstTreeIsValid  = rootHash h1 == build proofNodePositions
-        secondTreeIsValid = rootHash h2 == (merkleTreeRootHash . buildMerkleTree) proofNodePositions
+        secondTreeIsValid = Just (rootHash h2) == (merkleTreeRootHash . buildMerkleTree) proofNodePositions
         proofNodePositions = zip (proof (treeSize h1) (treeSize h2)) (proofCP p)
                             ++ possibleLeftSubTree
             where
@@ -50,6 +51,7 @@ largestPowerOfTwoSmallerThan :: Integral a => a -> a
 largestPowerOfTwoSmallerThan n = if largestSmallerThanOrEqualTo == n then n `div` 2 else largestSmallerThanOrEqualTo
     where largestSmallerThanOrEqualTo = round (2 ** fromIntegral (floor $ logBase 2 $ fromIntegral n :: Int))
 
+smallestPowerOfTwoLargerThanOrEqualTo :: Integral a => a -> a
 smallestPowerOfTwoLargerThanOrEqualTo x = largestPowerOfTwoSmallerThan (2*x)
 
 isPowerOfTwo :: Integral a => a -> Bool

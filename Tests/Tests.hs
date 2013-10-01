@@ -6,6 +6,7 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Char8 as BSC
+import Data.Maybe (fromJust)
 import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
@@ -90,13 +91,13 @@ checkAllElementsFromFirstTreeAreInSecond = do
 
     let firstSTH = SignedTreeHead { treeSize = 3
                                   , timestamp = 42
-                                  , rootHash = merkleTreeRootHash tree1
+                                  , rootHash = fromJust $ merkleTreeRootHash tree1
                                   , treeHeadSignature = (B64.encode . BSC.pack) "sig"
                                   }
 
     let secondSTH = SignedTreeHead { treeSize = 4
                                    , timestamp = 42+20
-                                   , rootHash = merkleTreeRootHash tree2
+                                   , rootHash = fromJust $ merkleTreeRootHash tree2
                                    , treeHeadSignature = (B64.encode . BSC.pack) "sig2"
                                    }
 
@@ -136,3 +137,7 @@ consistencyProofFromGoogle = do
 
 leaf :: Int -> ByteString -> MerkleTree
 leaf i h = MerkleTree Empty i h Empty
+
+merkleTreeHash :: MerkleTree -> ByteString
+merkleTreeHash (MerkleTree _ _ h _) = h
+merkleTreeHash Empty                = error "empty merkle tree has no hash"
