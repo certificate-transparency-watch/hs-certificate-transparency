@@ -24,3 +24,12 @@ The source for this auditor is in this repository for convenience. Once the libr
     ./cabal-dev/bin/hs-certificate-transparency
 
 The barely comprehensible log output goes to syslog, with facility level 'daemon'.
+
+#### FreeBSD
+
+1. Install [ca\_root\_nss](http://www.freshports.org/security/ca_root_nss/)
+2. Follow the above steps, but when executing `hs-certificate-transparency` set the environment variable `SYSTEM_CERTIFICATE_PATH` to be `/usr/local/share/certs/`
+
+    SYSTEM\_CERTIFICATE\_PATH=/usr/local/share/certs/ ./cabal-dev/bin/hs-certificate-transparency
+
+See [issue #5](https://github.com/tomfitzhenry/hs-certificate-transparency/issues/5) for more details.
