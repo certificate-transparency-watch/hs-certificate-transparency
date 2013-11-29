@@ -15,6 +15,8 @@ import Network.CertificateTransparency.MerkleTree
 import Network.CertificateTransparency.Types
 import Network.CertificateTransparency.Verification
 
+import GooglePilotLogServer
+
 main :: IO ()
 main = defaultMain tests
 
@@ -25,6 +27,7 @@ tests = testGroup "Consistency proof"
               , testCase "check first tree" checkAllElementsFromFirstTreeAreInSecond
               , testCase "example from google's log" consistencyProofFromGoogle
               , testProperty "number of nodes in proof is logarithmic" propNodesInProofIsLogarithmic
+              , testCase "E2E test against Google pilot log server" testConsistencyAgainstGooglePilotLogServer
               ]
 
 -- "The number of nodes in the resulting proof is bounded above by

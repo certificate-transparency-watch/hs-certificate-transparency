@@ -28,16 +28,18 @@ executable hs-certificate-transparency
 
 test-suite tests
     type:           exitcode-stdio-1.0
-    hs-source-dirs: Tests, .
+    hs-source-dirs: ., Tests
     main-is:        Tests.hs
     build-depends:  tasty == 0.4.*
                   , tasty-hunit == 0.4.*
+                  , HUnit == 1.2.*
                   , tasty-quickcheck == 0.3.*
                   , base >= 4.5 && < 4.7
                   , aeson == 0.6.*
                   , base64-bytestring == 1.0.*
                   , bytestring == 0.9.*
                   , cryptohash == 0.10.*
+                  , hslogger == 1.2.*
                   , http-conduit == 1.9.*
                   , http-types == 0.8.*
                   , text == 0.11.*
