@@ -17,7 +17,7 @@ executable hs-certificate-transparency
   GHC-Options:         -Wall
   build-depends:       base >= 4.5 && < 4.7
                      , aeson == 0.6.*
-                     , base64-bytestring == 1.0.0.*
+                     , base64-bytestring == 1.0.*
                      , bytestring == 0.9.*
                      , cryptohash == 0.10.*
                      , hslogger == 1.2.*
@@ -37,7 +37,7 @@ test-suite tests
                   , test-framework-quickcheck2
                   , base >= 4.5 && < 4.7
                   , aeson == 0.6.*
-                  , base64-bytestring == 1.0.0.*
+                  , base64-bytestring == 1.0.*
                   , bytestring == 0.9.*
                   , cryptohash == 0.10.*
                   , http-conduit == 1.9.*
