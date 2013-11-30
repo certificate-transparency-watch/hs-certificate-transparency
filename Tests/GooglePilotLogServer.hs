@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module GooglePilotLogServer
-    ( testConsistencyAgainstGooglePilotLogServer
+    ( case_testConsistencyAgainstGooglePilotLogServer
     ) where
 
 import Control.Applicative ((<$>))
@@ -16,8 +16,8 @@ import Network.CertificateTransparency.Verification
 import Test.Tasty
 import Test.Tasty.HUnit
 
-testConsistencyAgainstGooglePilotLogServer :: Assertion
-testConsistencyAgainstGooglePilotLogServer = do
+case_testConsistencyAgainstGooglePilotLogServer :: Assertion
+case_testConsistencyAgainstGooglePilotLogServer = do
     rHeads <- rawHeads
     let uniqueHeads = uniqueSths $ map parse rHeads
     sthsWithNoValidProofs <- sthsWithNoValidProof (head uniqueHeads) (tail uniqueHeads)
