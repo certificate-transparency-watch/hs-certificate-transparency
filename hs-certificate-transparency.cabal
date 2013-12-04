@@ -24,6 +24,7 @@ executable hs-certificate-transparency
                      , http-conduit == 1.9.*
                      , http-types == 0.8.*
                      , monad-loops == 0.4.*
+                     , postgresql-simple >= 0.3.4 && < 0.3.5
                      , text == 0.11.*
 
 test-suite tests

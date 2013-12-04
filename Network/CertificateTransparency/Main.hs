@@ -2,11 +2,16 @@
 
 import qualified Data.ByteString.Base64 as B64
 
-import Control.Applicative ((<$>))
-import Control.Concurrent (threadDelay)
+import Control.Applicative ((<$>), (<*>))
+import Control.Concurrent (threadDelay, forkIO, yield)
+import Control.Monad (forever)
 import Control.Monad.Loops (whileM_)
 import Data.Ord
 import Data.IORef
+import Database.PostgreSQL.Simple
+import Database.PostgreSQL.Simple.FromRow
+import Database.PostgreSQL.Simple.ToRow
+import Database.PostgreSQL.Simple.ToField
 import Network.CertificateTransparency.LogServerApi
 import Network.CertificateTransparency.Types
 import Network.CertificateTransparency.Verification
@@ -21,22 +26,38 @@ knownGoodSth = SignedTreeHead
     , treeHeadSignature = B64.decodeLenient "BAMASDBGAiEAxv3KBaV64XsRfqX4L8D1RGeIpEaPMXf+zdVXJ1hU7ZkCIQDmkXZhX/b52LRnq+9LKI/XYr1hgT6uYmiwRGn7DCx3+A=="
     }
 
+
+connectInfo = defaultConnectInfo {
+    connectDatabase = "ct-watch"
+  , connectUser = "tom"
+  , connectPassword = "password"
+}
+
 main :: IO ()
 main = do
     setupLogging
-
-    sthRef <- newIORef (knownGoodSth, Just True)
-    whileM_ (notFoundBadSth sthRef) $ do
-        sth <- readIORef sthRef
-        sthToStore <- updateAndCheck sth
-        writeIORef sthRef sthToStore
-
-        threadDelay (2*60*1000*1000) -- every 2 minutes
-
-    badSth <- readIORef sthRef
-    errorM "main" $ "The following STH failed its consistency check: " ++ show badSth
+    forkIO . everyMinute $ pollLogServerForSth
+    forever yield
 
     where
+        pollLogServerForSth :: IO ()
+        pollLogServerForSth = do
+            debugM "poller" "Polling..."
+            conn <- connect connectInfo
+            sth <- getSth
+            case sth of
+                Just sth' -> withTransaction conn $ do
+                    let sql = "SELECT * FROM sth WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
+                    results <- query conn sql sth' :: IO [SignedTreeHead]
+                    if (null results)
+                        then execute conn "INSERT INTO sth (treesize, timestamp, roothash, treeheadsignature) VALUES (?, ?, ?, ?)" sth' >> return ()
+                        else return ()
+                Nothing   -> return ()
+
+            close conn
+
+        everyMinute a = forever $ a >> threadDelay (1*60*1000*1000)
+
         setupLogging :: IO ()
         setupLogging = do
             removeAllHandlers
@@ -45,25 +66,14 @@ main = do
             updateGlobalLogger rootLoggerName (setLevel DEBUG)
             infoM "main" "Logger started."
 
-        notFoundBadSth :: IORef (SignedTreeHead, Maybe Bool) -> IO Bool
-        notFoundBadSth ref = do
-            sth <- readIORef ref
-            return $ shouldContinue sth
-                where
-                    shouldContinue :: (SignedTreeHead, Maybe Bool) -> Bool
-                    shouldContinue (_, Just b)  = b
-                    shouldContinue (_, Nothing) = True
 
-        updateAndCheck :: (SignedTreeHead, Maybe Bool) -> IO (SignedTreeHead, Maybe Bool)
-        updateAndCheck (prevSth, prevB) = do
-            nextSth' <- getSth
-            case nextSth' of
-                Just nextSth -> if comparing treeSize prevSth nextSth == LT
-                                then do
-                                    consProof <- getSthConsistency prevSth nextSth
-                                    let r = (nextSth,
-                                             checkConsistencyProof prevSth nextSth <$> consProof)
-                                    debugM "main" $ "Iteration: " ++ show r
-                                    return r
-                                else return (prevSth, Nothing)
-                Nothing      -> return (prevSth, prevB)
+instance ToRow SignedTreeHead where
+    toRow d = [ toField (treeSize d)
+              , toField (timestamp d)
+              , toField (B64.encode $ rootHash d)
+              , toField (B64.encode $ treeHeadSignature d)
+              ]
+
+instance FromRow SignedTreeHead where
+    fromRow = SignedTreeHead <$> field <*> field <*> field <*> field
+
