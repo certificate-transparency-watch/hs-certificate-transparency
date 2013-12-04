@@ -4,7 +4,7 @@ import qualified Data.ByteString.Base64 as B64
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Concurrent (threadDelay, forkIO, yield)
-import Control.Monad (forever)
+import Control.Monad (forever, forM_, liftM)
 import Control.Monad.Loops (whileM_)
 import Data.Ord
 import Data.IORef
@@ -37,6 +37,7 @@ main :: IO ()
 main = do
     setupLogging
     forkIO . everyMinute $ pollLogServerForSth
+    forkIO . everyMinute $ processSth
     forever yield
 
     where
@@ -47,7 +48,7 @@ main = do
             sth <- getSth
             case sth of
                 Just sth' -> withTransaction conn $ do
-                    let sql = "SELECT * FROM sth WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
+                    let sql = "SELECT treesize, timestamp, roothash, treeheadsignature FROM sth WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
                     results <- query conn sql sth' :: IO [SignedTreeHead]
                     if (null results)
                         then execute conn "INSERT INTO sth (treesize, timestamp, roothash, treeheadsignature) VALUES (?, ?, ?, ?)" sth' >> return ()
@@ -55,6 +56,27 @@ main = do
                 Nothing   -> return ()
 
             close conn
+
+        processSth :: IO ()
+        processSth = do
+            debugM "processor" "Processing..."
+            conn <- connect connectInfo
+            let sql = "SELECT treesize,timestamp,roothash,treeheadsignature FROM sth WHERE verified = false"
+            results <- query_ conn sql :: IO [SignedTreeHead]
+            forM_ results $ \sth -> do
+                maybeConsistencyProof <- getSthConsistency knownGoodSth sth
+                if (isGood $ checkConsistencyProof knownGoodSth sth <$> maybeConsistencyProof)
+                    then do
+                        let updateSql = "UPDATE sth SET verified = true WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
+                        execute conn updateSql sth
+                        return ()
+                    else errorM "processor" ("Unable to verify sth: " ++ show sth)
+
+            close conn
+
+        isGood :: Maybe Bool -> Bool
+        isGood (Just b) = b
+        isGood Nothing  = False
 
         everyMinute a = forever $ a >> threadDelay (1*60*1000*1000)
 
@@ -75,5 +97,5 @@ instance ToRow SignedTreeHead where
               ]
 
 instance FromRow SignedTreeHead where
-    fromRow = SignedTreeHead <$> field <*> field <*> field <*> field
+    fromRow = SignedTreeHead <$> field <*> field <*> (liftM B64.decodeLenient field) <*> (liftM B64.decodeLenient field)
 
