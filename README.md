@@ -15,7 +15,7 @@ Me. I run a CT auditor to check consistency proofs in Google's pilot log server,
 ### How can I build and run the CT auditor?
 The source for this auditor is in this repository for convenience. Once the library matures, I'll move the auditor out of the library. Until then, to build and run the auditor:
 
-    apt-get install cabal-install # or equivalent
+    apt-get install cabal-install postgresql-server-dev-all # or equivalent
     ghc --version # ensure >= 7.6.2
     cabal install cabal-dev
     git clone https://github.com/tomfitzhenry/hs-certificate-transparency.git
