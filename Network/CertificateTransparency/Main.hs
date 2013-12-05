@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, TypeOperators #-}
 
 import qualified Data.ByteString.Base64 as B64
 
@@ -48,8 +48,8 @@ main = do
             sth <- getSth
             case sth of
                 Just sth' -> withTransaction conn $ do
-                    let sql = "SELECT treesize, timestamp, roothash, treeheadsignature FROM sth WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
-                    results <- query conn sql sth' :: IO [SignedTreeHead]
+                    let sql = "SELECT * FROM sth WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
+                    results <- query conn sql sth' :: IO [Only Int :. SignedTreeHead]
                     if (null results)
                         then execute conn "INSERT INTO sth (treesize, timestamp, roothash, treeheadsignature) VALUES (?, ?, ?, ?)" sth' >> return ()
                         else return ()
@@ -61,9 +61,9 @@ main = do
         processSth = do
             debugM "processor" "Processing..."
             conn <- connect connectInfo
-            let sql = "SELECT treesize,timestamp,roothash,treeheadsignature FROM sth WHERE verified = false"
-            results <- query_ conn sql :: IO [SignedTreeHead]
-            forM_ results $ \sth -> do
+            let sql = "SELECT * FROM sth WHERE verified = false"
+            results <- query_ conn sql :: IO ([Only Int :. SignedTreeHead])
+            forM_ (map second results) $ \sth -> do
                 maybeConsistencyProof <- getSthConsistency knownGoodSth sth
                 if (isGood $ checkConsistencyProof knownGoodSth sth <$> maybeConsistencyProof)
                     then do
@@ -73,6 +73,9 @@ main = do
                     else errorM "processor" ("Unable to verify sth: " ++ show sth)
 
             close conn
+
+        second :: (a :. b) -> b
+        second (_ :. b) = b
 
         isGood :: Maybe Bool -> Bool
         isGood (Just b) = b
