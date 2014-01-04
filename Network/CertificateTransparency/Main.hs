@@ -85,9 +85,6 @@ main = do
 
         setupLogging :: IO ()
         setupLogging = do
-            removeAllHandlers
-            s <- openlog "ct-consistency-checker" [PID] DAEMON DEBUG
-            updateGlobalLogger rootLoggerName (addHandler s)
             updateGlobalLogger rootLoggerName (setLevel DEBUG)
             infoM "main" "Logger started."
 
