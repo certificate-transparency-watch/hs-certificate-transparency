@@ -15,7 +15,4 @@ RUN /.cabal/bin/cabal-dev install-deps
 ADD . /src
 RUN /.cabal/bin/cabal-dev install
 
-#RUN cp cabal-dev/bin/hs-certificate-transparency .
-#RUN rm -rf dist/ cabal-dev/ /.cabal
-
 ENTRYPOINT ["./cabal-dev/bin/hs-certificate-transparency"]
