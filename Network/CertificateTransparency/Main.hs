@@ -29,8 +29,9 @@ knownGoodSth = SignedTreeHead
 
 connectInfo = defaultConnectInfo {
     connectDatabase = "ct-watch"
-  , connectUser = "tom"
-  , connectPassword = "password"
+  , connectUser = "docker"
+  , connectPassword = "docker"
+  , connectHost = "172.17.42.1"
 }
 
 main :: IO ()
