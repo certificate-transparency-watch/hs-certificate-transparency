@@ -12,6 +12,9 @@ WORKDIR /src
 
 ADD hs-certificate-transparency.cabal /src/
 RUN /.cabal/bin/cabal-dev install-deps
+
+RUN apt-get install ca-certificates
+
 ADD . /src
 RUN /.cabal/bin/cabal-dev install
 
