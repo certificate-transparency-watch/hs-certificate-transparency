@@ -1,4 +1,4 @@
 #!/bin/sh
 
 createdb -Udocker -W -h 127.0.0.1 ct-watch
-pg_restore -h 127.0.0.1 -Udocker -d ct-watch schema.sql
+cat schema.sql | psql -h 127.0.0.1 -Udocker -d ct-watch
