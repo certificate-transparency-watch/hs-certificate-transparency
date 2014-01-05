@@ -1,21 +1,17 @@
-FROM ubuntu
+FROM ubuntu:12.04
 MAINTAINER tom@tom-fitzhenry.me.uk
-
-
-RUN echo "deb http://archive.ubuntu.com/ubuntu precise main universe" > /etc/apt/sources.list
-RUN apt-get update
-RUN apt-get install -y ghc cabal-install postgresql-server-dev-all
-RUN cabal update
-RUN cabal install cabal-dev
 
 WORKDIR /src
 
+RUN echo "deb http://archive.ubuntu.com/ubuntu precise main universe" > /etc/apt/sources.list
+RUN apt-get update
+RUN apt-get install -y ghc cabal-install postgresql-server-dev-all ca-certificates
+RUN /bin/sh -c "cabal update || true"
+
+
 ADD hs-certificate-transparency.cabal /src/
-RUN /.cabal/bin/cabal-dev install-deps
-
-RUN apt-get install ca-certificates
-
+RUN cabal install --only-dependencies
 ADD . /src
-RUN /.cabal/bin/cabal-dev install
+RUN cabal install
 
-ENTRYPOINT ["./cabal-dev/bin/hs-certificate-transparency"]
+CMD ["/.cabal/bin/hs-certificate-transparency"]
