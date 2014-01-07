@@ -35,7 +35,7 @@ sthsWithNoValidProof x xs = do
 
         check :: SignedTreeHead -> SignedTreeHead -> IO (Maybe Bool)
         check s1 s2 = do
-            proof <- getSthConsistency s1 s2
+            proof <- getSthConsistency googlePilotLog s1 s2
             return $ checkConsistencyProof s1 s2 <$> proof
 
 uniqueSths :: [Maybe SignedTreeHead] -> [SignedTreeHead]

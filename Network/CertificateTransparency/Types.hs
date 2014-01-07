@@ -13,3 +13,11 @@ data SignedTreeHead = SignedTreeHead
 data ConsistencyProof = ConsistencyProof
     { proofCP :: [ByteString]
     } deriving Show
+
+data LogServer = LogServer
+    { logServerPrefix :: String
+    } deriving Show
+
+googlePilotLog = LogServer
+    { logServerPrefix = "ct.googleapis.com/pilot"
+    }

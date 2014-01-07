@@ -23,7 +23,6 @@ knownGoodSth = SignedTreeHead
     , treeHeadSignature = B64.decodeLenient "BAMASDBGAiEAxv3KBaV64XsRfqX4L8D1RGeIpEaPMXf+zdVXJ1hU7ZkCIQDmkXZhX/b52LRnq+9LKI/XYr1hgT6uYmiwRGn7DCx3+A=="
     }
 
-
 connectInfo = defaultConnectInfo {
     connectDatabase = "ct-watch"
   , connectUser = "docker"
@@ -43,7 +42,7 @@ main = do
         pollLogServerForSth = do
             debugM "poller" "Polling..."
             conn <- connect connectInfo
-            sth <- getSth
+            sth <- getSth googlePilotLog
             case sth of
                 Just sth' -> withTransaction conn $ do
                     let sql = "SELECT * FROM sth WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
@@ -62,7 +61,7 @@ main = do
             let sql = "SELECT * FROM sth WHERE verified = false"
             results <- query_ conn sql :: IO ([SignedTreeHead :. Only Bool])
             forM_ (map first results) $ \sth -> do
-                maybeConsistencyProof <- getSthConsistency knownGoodSth sth
+                maybeConsistencyProof <- getSthConsistency googlePilotLog knownGoodSth sth
                 if (isGood $ checkConsistencyProof knownGoodSth sth <$> maybeConsistencyProof)
                     then do
                         let updateSql = "UPDATE sth SET verified = true WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
