@@ -3,11 +3,9 @@
 import qualified Data.ByteString.Base64 as B64
 
 import Control.Applicative ((<$>), (<*>))
-import Control.Concurrent (threadDelay, forkIO, yield)
+import Control.Concurrent (threadDelay, forkIO)
 import Control.Monad (forever, forM_, liftM)
 import Control.Monad.Loops (whileM_)
-import Data.Ord
-import Data.IORef
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.ToRow
@@ -15,7 +13,6 @@ import Database.PostgreSQL.Simple.ToField
 import Network.CertificateTransparency.LogServerApi
 import Network.CertificateTransparency.Types
 import Network.CertificateTransparency.Verification
-import System.Log.Handler.Syslog
 import System.Log.Logger
 
 knownGoodSth :: SignedTreeHead
@@ -39,7 +36,7 @@ main = do
     setupLogging
     forkIO . everyMinute $ pollLogServerForSth
     forkIO . everyMinute $ processSth
-    forever yield
+    forever $ threadDelay (10*1000*1000)
 
     where
         pollLogServerForSth :: IO ()
