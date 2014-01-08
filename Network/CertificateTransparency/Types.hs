@@ -16,5 +16,6 @@ data ConsistencyProof = ConsistencyProof
 
 data LogServer = LogServer
     { logServerPrefix :: String
+    , logServerId :: Int
     } deriving Show
 

@@ -30,11 +30,15 @@ connectInfo = defaultConnectInfo {
   , connectHost = "172.17.42.1"
 }
 
-googlePilotLogServer :: Connection -> IO LogServer
-googlePilotLogServer conn = withTransaction conn $ do
-    let sql = "SELECT * FROM log_server WHERE id = 1"
-    results <- query_ conn sql :: IO [LogServer]
-    return $ results !! 0
+googlePilotLogServer conn = do
+    servers <- logServers conn
+    return $ head $ filter (\ls -> logServerId ls == 1) servers
+
+logServers :: Connection -> IO [LogServer]
+logServers conn = withTransaction conn $ do
+    let sql = "SELECT * FROM log_server"
+    query_ conn sql :: IO [LogServer]
+
 
 
 main :: IO ()
@@ -49,8 +53,8 @@ main = do
         pollLogServersForSth = do
             debugM "poller" "Polling..."
             conn <- connect connectInfo
-            googlePilotLog <- googlePilotLogServer conn
-            pollLogServerForSth conn googlePilotLog
+            logServers <- logServers conn
+            mapM_ (pollLogServerForSth conn) logServers
             close conn
 
         pollLogServerForSth :: Connection -> LogServer -> IO ()
@@ -61,7 +65,7 @@ main = do
                     let sql = "SELECT * FROM sth WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
                     results <- query conn sql sth' :: IO [SignedTreeHead :. Only Bool]
                     if (null results)
-                        then execute conn "INSERT INTO sth (treesize, timestamp, roothash, treeheadsignature, log_server_id) VALUES (?, ?, ?, ?, 1)" sth' >> return ()
+                        then execute conn "INSERT INTO sth (treesize, timestamp, roothash, treeheadsignature, log_server_id) VALUES (?, ?, ?, ?, ?)" (sth' :. Only (logServerId logServer)) >> return ()
                         else return ()
                 Nothing   -> return ()
 
@@ -110,4 +114,4 @@ instance FromRow SignedTreeHead where
     fromRow = SignedTreeHead <$> field <*> field <*> (liftM B64.decodeLenient field) <*> (liftM B64.decodeLenient field)
 
 instance FromRow LogServer where
-    fromRow = LogServer <$> field
+    fromRow = LogServer <$> field <*> field
