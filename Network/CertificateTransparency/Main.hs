@@ -5,7 +5,6 @@ import qualified Data.ByteString.Base64 as B64
 import Control.Applicative ((<$>), (<*>))
 import Control.Concurrent (threadDelay, forkIO)
 import Control.Monad (forever, forM_, liftM)
-import Control.Monad.Loops (whileM_)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.ToRow
@@ -23,6 +22,7 @@ knownGoodSth = SignedTreeHead
     , treeHeadSignature = B64.decodeLenient "BAMASDBGAiEAxv3KBaV64XsRfqX4L8D1RGeIpEaPMXf+zdVXJ1hU7ZkCIQDmkXZhX/b52LRnq+9LKI/XYr1hgT6uYmiwRGn7DCx3+A=="
     }
 
+connectInfo :: ConnectInfo
 connectInfo = defaultConnectInfo {
     connectDatabase = "ct-watch"
   , connectUser = "docker"
@@ -30,6 +30,7 @@ connectInfo = defaultConnectInfo {
   , connectHost = "172.17.42.1"
 }
 
+googlePilotLogServer :: Connection -> IO LogServer
 googlePilotLogServer conn = do
     servers <- logServers conn
     return $ head $ filter (\ls -> logServerId ls == 1) servers
@@ -44,8 +45,8 @@ logServers conn = withTransaction conn $ do
 main :: IO ()
 main = do
     setupLogging
-    forkIO . everyMinute $ pollLogServersForSth
-    forkIO . everyMinute $ processSth
+    _ <- forkIO . everyMinute $ pollLogServersForSth
+    _ <- forkIO . everyMinute $ processSth
     forever $ threadDelay (10*1000*1000)
 
     where
@@ -53,8 +54,8 @@ main = do
         pollLogServersForSth = do
             debugM "poller" "Polling..."
             conn <- connect connectInfo
-            logServers <- logServers conn
-            mapM_ (pollLogServerForSth conn) logServers
+            servers <- logServers conn
+            mapM_ (pollLogServerForSth conn) servers
             close conn
 
         pollLogServerForSth :: Connection -> LogServer -> IO ()
@@ -82,7 +83,7 @@ main = do
                 if (isGood $ checkConsistencyProof knownGoodSth sth <$> maybeConsistencyProof)
                     then do
                         let updateSql = "UPDATE sth SET verified = true WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
-                        execute conn updateSql sth
+                        _ <- execute conn updateSql sth
                         return ()
                     else errorM "processor" ("Unable to verify sth: " ++ show sth)
 
