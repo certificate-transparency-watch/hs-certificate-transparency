@@ -76,7 +76,7 @@ main = do
             conn <- connect connectInfo
             googlePilotLog <- googlePilotLogServer conn
             let sql = "SELECT * FROM sth WHERE verified = false"
-            results <- query_ conn sql :: IO ([SignedTreeHead :. Only Bool])
+            results <- query_ conn sql :: IO ([SignedTreeHead :. (Bool, Int)])
             forM_ (map first results) $ \sth -> do
                 maybeConsistencyProof <- getSthConsistency googlePilotLog knownGoodSth sth
                 if (isGood $ checkConsistencyProof knownGoodSth sth <$> maybeConsistencyProof)
