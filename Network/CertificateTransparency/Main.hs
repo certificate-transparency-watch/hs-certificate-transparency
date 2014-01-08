@@ -63,7 +63,7 @@ main = do
             case sth of
                 Just sth' -> withTransaction conn $ do
                     let sql = "SELECT * FROM sth WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
-                    results <- query conn sql sth' :: IO [SignedTreeHead :. Only Bool]
+                    results <- query conn sql sth' :: IO [SignedTreeHead :. (Bool, Int)]
                     if (null results)
                         then execute conn "INSERT INTO sth (treesize, timestamp, roothash, treeheadsignature, log_server_id) VALUES (?, ?, ?, ?, ?)" (sth' :. Only (logServerId logServer)) >> return ()
                         else return ()
