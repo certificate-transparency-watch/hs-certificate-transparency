@@ -30,6 +30,13 @@ connectInfo = defaultConnectInfo {
   , connectHost = "172.17.42.1"
 }
 
+googlePilotLogServer :: Connection -> IO LogServer
+googlePilotLogServer conn = withTransaction conn $ do
+    let sql = "SELECT * FROM log_server WHERE id = 1"
+    results <- query_ conn sql :: IO [LogServer]
+    return $ results !! 0
+
+
 main :: IO ()
 main = do
     setupLogging
@@ -42,6 +49,7 @@ main = do
         pollLogServerForSth = do
             debugM "poller" "Polling..."
             conn <- connect connectInfo
+            googlePilotLog <- googlePilotLogServer conn
             sth <- getSth googlePilotLog
             case sth of
                 Just sth' -> withTransaction conn $ do
@@ -58,6 +66,7 @@ main = do
         processSth = do
             debugM "processor" "Processing..."
             conn <- connect connectInfo
+            googlePilotLog <- googlePilotLogServer conn
             let sql = "SELECT * FROM sth WHERE verified = false"
             results <- query_ conn sql :: IO ([SignedTreeHead :. Only Bool])
             forM_ (map first results) $ \sth -> do
@@ -96,3 +105,5 @@ instance ToRow SignedTreeHead where
 instance FromRow SignedTreeHead where
     fromRow = SignedTreeHead <$> field <*> field <*> (liftM B64.decodeLenient field) <*> (liftM B64.decodeLenient field)
 
+instance FromRow LogServer where
+    fromRow = LogServer <$> field

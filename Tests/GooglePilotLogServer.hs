@@ -16,6 +16,10 @@ import Network.CertificateTransparency.Verification
 import Test.Tasty
 import Test.Tasty.HUnit
 
+googlePilotLog = LogServer
+    { logServerPrefix = "ct.googleapis.com/pilot"
+    }
+
 case_testConsistencyAgainstGooglePilotLogServer :: Assertion
 case_testConsistencyAgainstGooglePilotLogServer = do
     rHeads <- rawHeads
