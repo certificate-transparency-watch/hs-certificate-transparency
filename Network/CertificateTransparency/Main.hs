@@ -40,27 +40,31 @@ googlePilotLogServer conn = withTransaction conn $ do
 main :: IO ()
 main = do
     setupLogging
-    forkIO . everyMinute $ pollLogServerForSth
+    forkIO . everyMinute $ pollLogServersForSth
     forkIO . everyMinute $ processSth
     forever $ threadDelay (10*1000*1000)
 
     where
-        pollLogServerForSth :: IO ()
-        pollLogServerForSth = do
+        pollLogServersForSth :: IO ()
+        pollLogServersForSth = do
             debugM "poller" "Polling..."
             conn <- connect connectInfo
             googlePilotLog <- googlePilotLogServer conn
-            sth <- getSth googlePilotLog
+            pollLogServerForSth conn googlePilotLog
+            close conn
+
+        pollLogServerForSth :: Connection -> LogServer -> IO ()
+        pollLogServerForSth conn logServer = do
+            sth <- getSth logServer
             case sth of
                 Just sth' -> withTransaction conn $ do
                     let sql = "SELECT * FROM sth WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
                     results <- query conn sql sth' :: IO [SignedTreeHead :. Only Bool]
                     if (null results)
-                        then execute conn "INSERT INTO sth (treesize, timestamp, roothash, treeheadsignature) VALUES (?, ?, ?, ?)" sth' >> return ()
+                        then execute conn "INSERT INTO sth (treesize, timestamp, roothash, treeheadsignature, log_server_id) VALUES (?, ?, ?, ?, 1)" sth' >> return ()
                         else return ()
                 Nothing   -> return ()
 
-            close conn
 
         processSth :: IO ()
         processSth = do
