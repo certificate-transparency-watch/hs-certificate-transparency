@@ -16,14 +16,6 @@ import Network.CertificateTransparency.Types
 import Network.CertificateTransparency.Verification
 import System.Log.Logger
 
-knownGoodSth :: SignedTreeHead
-knownGoodSth = SignedTreeHead
-    { treeSize = 1979426
-    , timestamp = 1368891548960
-    , rootHash = B64.decodeLenient "8UkrV2kjoLcZ5fP0xxVtpsSsWAnvcV8aPv39vh96J2o="
-    , treeHeadSignature = B64.decodeLenient "BAMASDBGAiEAxv3KBaV64XsRfqX4L8D1RGeIpEaPMXf+zdVXJ1hU7ZkCIQDmkXZhX/b52LRnq+9LKI/XYr1hgT6uYmiwRGn7DCx3+A=="
-    }
-
 connectInfo :: ConnectInfo
 connectInfo = defaultConnectInfo {
     connectDatabase = "ct-watch"
@@ -32,17 +24,10 @@ connectInfo = defaultConnectInfo {
   , connectHost = "172.17.42.1"
 }
 
-googlePilotLogServer :: Connection -> IO LogServer
-googlePilotLogServer conn = do
-    servers <- logServers conn
-    return $ head $ filter (\ls -> logServerId ls == 1) servers
-
 logServers :: Connection -> IO [LogServer]
 logServers conn = withTransaction conn $ do
     let sql = "SELECT * FROM log_server"
     query_ conn sql :: IO [LogServer]
-
-
 
 main :: IO ()
 main = do
@@ -77,17 +62,24 @@ main = do
         processSth = do
             debugM "processor" "Processing..."
             conn <- connect connectInfo
-            googlePilotLog <- googlePilotLogServer conn
-            let sql = "SELECT * FROM sth WHERE verified = false AND log_server_id = 1"
-            results <- query_ conn sql :: IO ([SignedTreeHead :. (Bool, Int)])
-            forM_ (map first results) $ \sth -> do
-                maybeConsistencyProof <- getSthConsistency googlePilotLog knownGoodSth sth
-                if (isGood $ checkConsistencyProof knownGoodSth sth <$> maybeConsistencyProof)
-                    then do
-                        let updateSql = "UPDATE sth SET verified = true WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
-                        _ <- execute conn updateSql sth
-                        return ()
-                    else errorM "processor" ("Unable to verify sth: " ++ show sth)
+            logs <- logServers conn
+            forM_ logs $ \log -> do
+                knownGoodSth' <- query conn "SELECT * FROM sth WHERE verified = true AND log_server_id = ? ORDER BY timestamp LIMIT 1" (Only $ logServerId log) :: IO ([SignedTreeHead :. (Bool, Int)])
+
+                if (null knownGoodSth')
+                    then do errorM "processing" $ "Log " ++ show log ++ " has no known good STH. Set one such record verified."
+                    else do
+                        let knownGoodSth = first $ head knownGoodSth'
+                        let sql = "SELECT * FROM sth WHERE verified = false AND log_server_id = ?"
+                        results <- query conn sql (Only $ logServerId log) :: IO ([SignedTreeHead :. (Bool, Int)])
+                        forM_ (map first results) $ \sth -> do
+                            maybeConsistencyProof <- getSthConsistency log knownGoodSth sth
+                            if (isGood $ checkConsistencyProof knownGoodSth sth <$> maybeConsistencyProof)
+                                then do
+                                    let updateSql = "UPDATE sth SET verified = true WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
+                                    _ <- execute conn updateSql sth
+                                    return ()
+                                else errorM "processor" ("Unable to verify sth: " ++ show sth)
 
             close conn
 
