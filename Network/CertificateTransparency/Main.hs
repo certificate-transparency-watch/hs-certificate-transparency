@@ -4,6 +4,8 @@ import qualified Data.ByteString.Base64 as B64
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Concurrent (threadDelay, forkIO)
+import Control.Concurrent.Async
+import Control.Exception (SomeException)
 import Control.Monad (forever, forM_, liftM)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromRow
@@ -45,8 +47,8 @@ logServers conn = withTransaction conn $ do
 main :: IO ()
 main = do
     setupLogging
-    _ <- forkIO . everyMinute $ pollLogServersForSth
-    _ <- forkIO . everyMinute $ processSth
+    _ <- forkIO . everyMinute $ catchAny pollLogServersForSth logException
+    _ <- forkIO . everyMinute $ catchAny processSth logException
     forever $ threadDelay (10*1000*1000)
 
     where
@@ -102,6 +104,15 @@ main = do
         setupLogging = do
             updateGlobalLogger rootLoggerName (setLevel DEBUG)
             infoM "main" "Logger started."
+
+        logException :: SomeException -> IO ()
+        logException e = errorM "processor" ("Exception: " ++ show e)
+
+        tryAny :: IO a -> IO (Either SomeException a)
+        tryAny action = withAsync action waitCatch
+
+        catchAny :: IO a -> (SomeException -> IO a) -> IO a
+        catchAny action onE = tryAny action >>= either onE return
 
 
 instance ToRow SignedTreeHead where
