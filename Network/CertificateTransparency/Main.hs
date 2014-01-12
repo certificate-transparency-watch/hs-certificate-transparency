@@ -115,4 +115,4 @@ instance FromRow SignedTreeHead where
     fromRow = SignedTreeHead <$> field <*> field <*> (liftM B64.decodeLenient field) <*> (liftM B64.decodeLenient field)
 
 instance FromRow LogServer where
-    fromRow = LogServer <$> field <*> field
+    fromRow = LogServer <$> field <*> field <*> field
