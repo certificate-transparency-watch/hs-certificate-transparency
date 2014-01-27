@@ -1,4 +1,3 @@
-{-# LANGUAGE Safe #-}
 module Network.CertificateTransparency.Verification
     ( checkConsistencyProof
     , proof -- visible for testing

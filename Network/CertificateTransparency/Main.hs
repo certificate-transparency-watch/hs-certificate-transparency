@@ -7,6 +7,12 @@ import Control.Concurrent (threadDelay, forkIO)
 import Control.Concurrent.Async
 import Control.Exception (SomeException)
 import Control.Monad (forever, forM_, liftM)
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.ByteString as BS
+import qualified Data.Binary as B
+import Data.Binary.Get
+import Data.Certificate.X509
+import Data.Word
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.ToRow
@@ -58,6 +64,7 @@ main = do
             entries' <- getEntries logServer (start, end)
             case entries' of
                 Just entries -> do
+                    mapM extractAndPrintDistinguishedName entries
                     let parameters = map (\(e, i) -> (logServerId logServer, i) :. e) $ zip entries [start..end]
                     _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, leaf_input, extra_data) VALUES (?, ?, ? ,?)" parameters
                     return ()
@@ -150,3 +157,36 @@ instance ToRow LogEntry where
     toRow d = [ toField (B64.encode $ logEntryLeafInput d)
               , toField (B64.encode $ logEntryExtraData d)
               ]
+
+instance B.Binary MerkleTreeLeaf where
+    get = MerkleTreeLeaf <$> B.get <*> B.get <*> B.get
+    put = undefined
+             
+instance B.Binary TimestampedEntry where
+    get = do
+        ts <- B.get
+        et <- B.get
+
+        a <- B.get :: B.Get Word8
+        b <- B.get :: B.Get Word8
+        c <- B.get :: B.Get Word8
+        let length = 2^16 * (fromIntegral a) + 2^8 * (fromIntegral b) + (fromIntegral c)
+
+        c <- getLazyByteString length
+
+        return $ TimestampedEntry ts et (ASN1Cert $ x509Cert $ right $ decodeCertificate c)
+    put = undefined
+
+right (Right a) = a
+
+extractAndPrintDistinguishedName :: LogEntry -> IO ()
+extractAndPrintDistinguishedName logEntry = do
+    let bs = logEntryLeafInput logEntry
+    let merkleLeaf' = B.decodeOrFail $ BSL.pack $ BS.unpack $ bs
+    case merkleLeaf' of
+        Left (bs', bos, s) -> do
+            errorM "ct-watch-sync" $ "Failed decoding logentry " ++ show logEntry ++ ". Details bs=" ++ show bs' ++ " bos=" ++ show bos ++ " s=" ++ show s
+        Right (_, _, merkleLeaf) -> do
+            let (ASN1Cert c) = cert $ timestampedEntry merkleLeaf
+            let dn = certSubjectDN c
+            print $ snd $ last $ getDistinguishedElements dn
