@@ -2,8 +2,10 @@
 module Network.CertificateTransparency.LogServerApi
     ( getSth
     , getSthConsistency
+    , getEntries
     ) where
 
+import Control.Applicative
 import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as BSLC
 import Network.HTTP.Conduit
@@ -42,3 +44,17 @@ getSthConsistency logServer h1 h2 = do
     debugM url $ BSLC.unpack r
 
     return (decode r :: Maybe ConsistencyProof)
+
+getEntries :: LogServer -> (Int, Int) -> IO (Maybe [LogEntry])
+getEntries logServer (start, end) = do
+    let url = "https://" ++ logServerPrefix logServer ++ "/ct/v1/get-entries?start=" ++ show start ++ "&end=" ++ show end
+
+    debugM url ""
+
+    initReq <- parseUrl url
+
+    res <- withManager $ httpLbs initReq
+
+    let r = responseBody res
+
+    return $ logEntriesEntries <$> (decode r :: Maybe LogEntries)

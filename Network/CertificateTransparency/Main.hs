@@ -34,9 +34,35 @@ main = do
     setupLogging
     _ <- forkIO . everyMinute $ catchAny pollLogServersForSth logException
     _ <- forkIO . everyMinute $ catchAny processSth logException
+    _ <- forkIO . everyMinute $ catchAny syncLogEntries logException
     forever $ threadDelay (10*1000*1000)
 
     where
+        syncLogEntries :: IO ()
+        syncLogEntries = do
+            conn <- connect connectInfo
+            servers <- logServers conn
+            mapM_ (syncLogEntriesForLog conn) servers
+            close conn
+
+        only (Only a) = a
+
+        syncLogEntriesForLog :: Connection -> LogServer -> IO ()
+        syncLogEntriesForLog conn logServer = do
+            let sql = "SELECT max(idx)+1 FROM log_entry WHERE log_server_id = ?"
+            result <- query conn sql (Only $ logServerId logServer) :: IO [Only Int]
+            let start = only $ head $ result
+            let end = start + 500
+
+
+            entries' <- getEntries logServer (start, end)
+            case entries' of
+                Just entries -> do
+                    let parameters = map (\(e, i) -> (logServerId logServer, i) :. e) $ zip entries [start..end]
+                    _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, leaf_input, extra_data) VALUES (?, ?, ? ,?)" parameters
+                    return ()
+                Nothing -> debugM "sync" "No entries" >> return ()
+
         pollLogServersForSth :: IO ()
         pollLogServersForSth = do
             debugM "poller" "Polling..."
@@ -118,4 +144,9 @@ instance FromRow SignedTreeHead where
     fromRow = SignedTreeHead <$> field <*> field <*> (liftM B64.decodeLenient field) <*> (liftM B64.decodeLenient field)
 
 instance FromRow LogServer where
-    fromRow = LogServer <$> field <*> field <*> field
+     fromRow = LogServer <$> field <*> field <*> field
+
+instance ToRow LogEntry where
+    toRow d = [ toField (B64.encode $ logEntryLeafInput d)
+              , toField (B64.encode $ logEntryExtraData d)
+              ]
