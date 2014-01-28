@@ -64,9 +64,9 @@ main = do
             entries' <- getEntries logServer (start, end)
             case entries' of
                 Just entries -> do
-                    mapM extractAndPrintDistinguishedName entries
-                    let parameters = map (\(e, i) -> (logServerId logServer, i) :. e) $ zip entries [start..end]
-                    _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, leaf_input, extra_data) VALUES (?, ?, ? ,?)" parameters
+                    domains <- mapM extractDistinguishedName entries
+                    let parameters = map (\(e, i, d) -> (logServerId logServer, i, d) :. e) $ zip3 entries [start..end] domains
+                    _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, domain, leaf_input, extra_data) VALUES (?, ?, ?, ?, ?)" parameters
                     return ()
                 Nothing -> debugM "sync" "No entries" >> return ()
 
@@ -179,14 +179,15 @@ instance B.Binary TimestampedEntry where
 
 right (Right a) = a
 
-extractAndPrintDistinguishedName :: LogEntry -> IO ()
-extractAndPrintDistinguishedName logEntry = do
+extractDistinguishedName :: LogEntry -> IO String
+extractDistinguishedName logEntry = do
     let bs = logEntryLeafInput logEntry
     let merkleLeaf' = B.decodeOrFail $ BSL.pack $ BS.unpack $ bs
     case merkleLeaf' of
         Left (bs', bos, s) -> do
             errorM "ct-watch-sync" $ "Failed decoding logentry " ++ show logEntry ++ ". Details bs=" ++ show bs' ++ " bos=" ++ show bos ++ " s=" ++ show s
+            return "FAILED"
         Right (_, _, merkleLeaf) -> do
             let (ASN1Cert c) = cert $ timestampedEntry merkleLeaf
             let dn = certSubjectDN c
-            print $ snd $ last $ getDistinguishedElements dn
+            return $ snd $ snd $ last $ getDistinguishedElements dn
