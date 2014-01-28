@@ -157,8 +157,8 @@ instance FromRow LogServer where
      fromRow = LogServer <$> field <*> field <*> field
 
 instance ToRow LogEntry where
-    toRow d = [ toField (B64.encode $ logEntryLeafInput d)
-              , toField (B64.encode $ logEntryExtraData d)
+    toRow d = [ toField (Binary $ logEntryLeafInput d)
+              , toField (Binary $ logEntryExtraData d)
               ]
 
 instance B.Binary MerkleTreeLeaf where
