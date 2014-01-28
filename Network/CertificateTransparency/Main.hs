@@ -6,7 +6,9 @@ import Control.Applicative ((<$>), (<*>))
 import Control.Concurrent (threadDelay, forkIO)
 import Control.Concurrent.Async
 import Control.Exception (SomeException)
+import qualified Control.Exception as E
 import Control.Monad (forever, forM_, liftM)
+import Data.ASN1.Types (ASN1Error)
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString as BS
 import qualified Data.Binary as B
@@ -181,13 +183,19 @@ right (Right a) = a
 
 extractDistinguishedName :: LogEntry -> IO String
 extractDistinguishedName logEntry = do
-    let bs = logEntryLeafInput logEntry
-    let merkleLeaf' = B.decodeOrFail $ BSL.pack $ BS.unpack $ bs
-    case merkleLeaf' of
-        Left (bs', bos, s) -> do
-            errorM "ct-watch-sync" $ "Failed decoding logentry " ++ show logEntry ++ ". Details bs=" ++ show bs' ++ " bos=" ++ show bos ++ " s=" ++ show s
-            return "FAILED"
-        Right (_, _, merkleLeaf) -> do
-            let (ASN1Cert c) = cert $ timestampedEntry merkleLeaf
-            let dn = certSubjectDN c
-            return $ snd $ snd $ last $ getDistinguishedElements dn
+    E.catch (do
+        let bs = logEntryLeafInput logEntry
+        let merkleLeaf' = B.decodeOrFail $ BSL.pack $ BS.unpack $ bs
+        case merkleLeaf' of
+            Left (bs', bos, s) -> do
+                errorM "ct-watch-sync" $ "Failed decoding logentry " ++ show logEntry ++ ". Details bs=" ++ show bs' ++ " bos=" ++ show bos ++ " s=" ++ show s
+                return "FAILED"
+            Right (_, _, merkleLeaf) -> do
+                let (ASN1Cert c) = cert $ timestampedEntry merkleLeaf
+                let dn = certSubjectDN c
+                str <- E.evaluate $ snd $ snd $ last $ getDistinguishedElements dn 
+                return str
+        ) (\e -> do
+                    errorM "sync" $ "ffff" ++ show (e :: ASN1Error)
+                    return "FAILED"
+          )
