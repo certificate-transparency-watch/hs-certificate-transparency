@@ -57,6 +57,7 @@ main = do
 
         syncLogEntriesForLog :: Connection -> LogServer -> IO ()
         syncLogEntriesForLog conn logServer = do
+            debugM "sync" $ "Syncing " ++ show logServer
             let sql = "SELECT max(idx)+1 FROM log_entry WHERE log_server_id = ?"
             result <- query conn sql (Only $ logServerId logServer) :: IO [Only Int]
             let start = only $ head $ result
