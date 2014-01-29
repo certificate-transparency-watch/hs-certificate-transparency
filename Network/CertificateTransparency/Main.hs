@@ -42,7 +42,7 @@ main = do
     setupLogging
     _ <- forkIO . everyMinute $ catchAny pollLogServersForSth logException
     _ <- forkIO . everyMinute $ catchAny processSth logException
-    _ <- forkIO . everyMinute $ catchAny syncLogEntries logException
+    _ <- forkIO . everySeconds 20 $ catchAny syncLogEntries logException
     forever $ threadDelay (10*1000*1000)
 
     where
@@ -61,7 +61,7 @@ main = do
             let sql = "SELECT max(idx)+1 FROM log_entry WHERE log_server_id = ?"
             result <- query conn sql (Only $ logServerId logServer) :: IO [Only Int]
             let start = only $ head $ result
-            let end = start + 500
+            let end = start + 3000
 
 
             entries' <- getEntries logServer (start, end)
@@ -127,6 +127,7 @@ main = do
         isGood Nothing  = False
 
         everyMinute a = forever $ a >> threadDelay (1*60*1000*1000)
+        everySeconds n a = forever $ a >> threadDelay (n*1000*1000)
 
         setupLogging :: IO ()
         setupLogging = do
