@@ -20,3 +20,14 @@ instance FromJSON ConsistencyProof where
     parseJSON (Object v) = ConsistencyProof <$>
                             liftM (map B64.decodeLenient) (v .: "consistency")
     parseJSON _          = mzero
+
+instance FromJSON LogEntry where
+    parseJSON (Object v) = LogEntry <$>
+                            liftM B64.decodeLenient (v .: "leaf_input") <*>
+                            liftM B64.decodeLenient (v .: "extra_data")
+    parseJSON _          = mzero
+
+instance FromJSON LogEntries where
+    parseJSON (Object v) = LogEntries <$>
+                            v .: "entries"
+    parseJSON _          = mzero
