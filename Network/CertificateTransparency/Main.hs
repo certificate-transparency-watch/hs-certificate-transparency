@@ -20,6 +20,7 @@ import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.ToRow
 import Database.PostgreSQL.Simple.ToField
+import Network.CertificateTransparency.Db
 import Network.CertificateTransparency.LogServerApi
 import Network.CertificateTransparency.Types
 import Network.CertificateTransparency.Verification
@@ -32,11 +33,6 @@ connectInfo = defaultConnectInfo {
   , connectPassword = "docker"
   , connectHost = "172.17.42.1"
 }
-
-logServers :: Connection -> IO [LogServer]
-logServers conn = withTransaction conn $ do
-    let sql = "SELECT * FROM log_server"
-    query_ conn sql :: IO [LogServer]
 
 main :: IO ()
 main = do
@@ -144,24 +140,6 @@ main = do
         catchAny :: IO a -> (SomeException -> IO a) -> IO a
         catchAny action onE = tryAny action >>= either onE return
 
-
-instance ToRow SignedTreeHead where
-    toRow d = [ toField (treeSize d)
-              , toField (timestamp d)
-              , toField (B64.encode $ rootHash d)
-              , toField (B64.encode $ treeHeadSignature d)
-              ]
-
-instance FromRow SignedTreeHead where
-    fromRow = SignedTreeHead <$> field <*> field <*> (liftM B64.decodeLenient field) <*> (liftM B64.decodeLenient field)
-
-instance FromRow LogServer where
-     fromRow = LogServer <$> field <*> field <*> field
-
-instance ToRow LogEntry where
-    toRow d = [ toField (Binary $ logEntryLeafInput d)
-              , toField (Binary $ logEntryExtraData d)
-              ]
 
 instance B.Binary MerkleTreeLeaf' where
     get = MerkleTreeLeaf' <$> B.get <*> B.get <*> B.get
