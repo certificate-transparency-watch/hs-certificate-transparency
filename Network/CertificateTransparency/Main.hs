@@ -17,9 +17,6 @@ import Data.Binary.Get
 import Data.Certificate.X509
 import Data.Word
 import Database.PostgreSQL.Simple
-import Database.PostgreSQL.Simple.FromRow
-import Database.PostgreSQL.Simple.ToRow
-import Database.PostgreSQL.Simple.ToField
 import Network.CertificateTransparency.Db
 import Network.CertificateTransparency.LogServerApi
 import Network.CertificateTransparency.Types
