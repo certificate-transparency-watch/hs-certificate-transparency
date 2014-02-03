@@ -10,15 +10,14 @@ import Control.Exception (SomeException)
 import qualified Control.Exception as E
 import Control.Monad (forever, forM_, liftM)
 import Data.ASN1.Types (ASN1Error)
+import qualified Data.Binary as B
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString as BS
-import qualified Data.Binary as B
-import Data.Binary.Get
 import Data.Certificate.X509
-import Data.Word
 import Database.PostgreSQL.Simple
 import Network.CertificateTransparency.Db
 import Network.CertificateTransparency.LogServerApi
+import Network.CertificateTransparency.StructParser
 import Network.CertificateTransparency.Types
 import Network.CertificateTransparency.Verification
 import System.Log.Logger
@@ -138,25 +137,6 @@ main = do
         catchAny action onE = tryAny action >>= either onE return
 
 
-instance B.Binary MerkleTreeLeaf' where
-    get = MerkleTreeLeaf' <$> B.get <*> B.get <*> B.get
-    put = undefined
-
-instance B.Binary TimestampedEntry' where
-    get = do
-        ts <- B.get
-        et <- B.get
-
-        a <- B.get :: B.Get Word8
-        b <- B.get :: B.Get Word8
-        c <- B.get :: B.Get Word8
-        let length = 2^16 * (fromIntegral a) + 2^8 * (fromIntegral b) + (fromIntegral c)
-
-        c <- getLazyByteString length
-
-        return $ TimestampedEntry' ts et c
-
-    put = undefined
 
 right (Right a) = a
 
