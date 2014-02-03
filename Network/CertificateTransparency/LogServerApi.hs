@@ -49,12 +49,10 @@ getEntries :: LogServer -> (Int, Int) -> IO (Maybe [LogEntry])
 getEntries logServer (start, end) = do
     let url = "https://" ++ logServerPrefix logServer ++ "/ct/v1/get-entries?start=" ++ show start ++ "&end=" ++ show end
 
-    debugM url ""
-
     initReq <- parseUrl url
 
     res <- withManager $ httpLbs initReq
 
     let r = responseBody res
 
-    return $ logEntriesEntries <$> (decode r :: Maybe LogEntries)
+    return $ logEntriesEntries <$> decode r
