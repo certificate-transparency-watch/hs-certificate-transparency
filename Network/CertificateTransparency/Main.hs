@@ -45,14 +45,11 @@ main = do
             mapM_ (syncLogEntriesForLog conn) servers
             close conn
 
-        only (Only a) = a
 
         syncLogEntriesForLog :: Connection -> LogServer -> IO ()
         syncLogEntriesForLog conn logServer = do
             debugM "sync" $ "Syncing " ++ show logServer
-            let sql = "SELECT max(idx)+1 FROM log_entry WHERE log_server_id = ?"
-            result <- query conn sql (Only $ logServerId logServer) :: IO [Only Int]
-            let start = only $ head $ result
+            start <- nextLogServerEntryForLogServer conn logServer
             let end = start + 3000
 
 
@@ -78,10 +75,9 @@ main = do
             sth <- getSth logServer
             case sth of
                 Just sth' -> withTransaction conn $ do
-                    let sql = "SELECT * FROM sth WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
-                    results <- query conn sql sth' :: IO [SignedTreeHead :. (Bool, Int)]
-                    if (null results)
-                        then execute conn "INSERT INTO sth (treesize, timestamp, roothash, treeheadsignature, log_server_id) VALUES (?, ?, ?, ?, ?)" (sth' :. Only (logServerId logServer)) >> return ()
+                    sthExists' <- sthExists conn sth'
+                    if (not sthExists')
+                        then insertSth conn sth' logServer >> return ()
                         else return ()
                 Nothing   -> return ()
 
@@ -92,27 +88,18 @@ main = do
             conn <- connect connectInfo
             logs <- logServers conn
             forM_ logs $ \log -> do
-                knownGoodSth' <- query conn "SELECT * FROM sth WHERE verified = true AND log_server_id = ? ORDER BY timestamp LIMIT 1" (Only $ logServerId log) :: IO ([SignedTreeHead :. (Bool, Int)])
-
-                if (null knownGoodSth')
-                    then do errorM "processing" $ "Log " ++ show log ++ " has no known good STH. Set one such record verified."
-                    else do
-                        let knownGoodSth = first $ head knownGoodSth'
-                        let sql = "SELECT * FROM sth WHERE verified = false AND log_server_id = ?"
-                        results <- query conn sql (Only $ logServerId log) :: IO ([SignedTreeHead :. (Bool, Int)])
-                        forM_ (map first results) $ \sth -> do
+                knownGoodSth' <- lookupKnownGoodSth conn log
+                case knownGoodSth' of
+                    Nothing -> errorM "processing" $ "Log " ++ show log ++ " has no known good STH. Set one such record verified."
+                    Just knownGoodSth -> do
+                        sths <- lookupUnverifiedSth conn log
+                        forM_ sths $ \sth -> do
                             maybeConsistencyProof <- getSthConsistency log knownGoodSth sth
                             if (isGood $ checkConsistencyProof knownGoodSth sth <$> maybeConsistencyProof)
-                                then do
-                                    let updateSql = "UPDATE sth SET verified = true WHERE treesize = ? AND timestamp = ? AND roothash = ? AND treeheadsignature = ?"
-                                    _ <- execute conn updateSql sth
-                                    return ()
+                                then setSthToBeVerified conn sth
                                 else errorM "processor" ("Unable to verify sth: " ++ show sth)
 
             close conn
-
-        first :: (a :. b) -> a
-        first (a :. _) = a
 
         isGood :: Maybe Bool -> Bool
         isGood (Just b) = b
