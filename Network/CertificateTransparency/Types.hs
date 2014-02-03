@@ -36,6 +36,11 @@ data MerkleTreeLeaf = MerkleTreeLeaf
     , leafType :: MerkleLeafType
     , timestampedEntry :: TimestampedEntry
     } deriving Show
+data MerkleTreeLeaf' = MerkleTreeLeaf'
+    { version' :: Version
+    , leafType' :: MerkleLeafType
+    , timestampedEntry' :: TimestampedEntry'
+    } deriving Show
     
 
 type MerkleLeafType = Word8
@@ -45,6 +50,11 @@ data TimestampedEntry = TimestampedEntry
     { timestamp' :: Word64
     , entryType :: LogEntryType
     , cert :: Cert
+    } deriving Show
+data TimestampedEntry' = TimestampedEntry'
+    { timestamp'' :: Word64
+    , entryType' :: LogEntryType
+    , cert' :: LBS.ByteString
     } deriving Show
 
 data Cert = ASN1Cert Certificate deriving Show

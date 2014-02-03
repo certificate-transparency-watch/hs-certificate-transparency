@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings, TypeOperators #-}
 
 import qualified Data.ByteString.Base64 as B64
+import qualified Data.ByteString.Base64.Lazy as B64L
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Concurrent (threadDelay, forkIO)
@@ -162,11 +163,11 @@ instance ToRow LogEntry where
               , toField (Binary $ logEntryExtraData d)
               ]
 
-instance B.Binary MerkleTreeLeaf where
-    get = MerkleTreeLeaf <$> B.get <*> B.get <*> B.get
+instance B.Binary MerkleTreeLeaf' where
+    get = MerkleTreeLeaf' <$> B.get <*> B.get <*> B.get
     put = undefined
-             
-instance B.Binary TimestampedEntry where
+
+instance B.Binary TimestampedEntry' where
     get = do
         ts <- B.get
         et <- B.get
@@ -178,7 +179,8 @@ instance B.Binary TimestampedEntry where
 
         c <- getLazyByteString length
 
-        return $ TimestampedEntry ts et (ASN1Cert $ x509Cert $ right $ decodeCertificate c)
+        return $ TimestampedEntry' ts et c
+
     put = undefined
 
 right (Right a) = a
@@ -192,8 +194,10 @@ extractDistinguishedName logEntry = do
             Left (bs', bos, s) -> do
                 errorM "ct-watch-sync" $ "Failed decoding logentry " ++ show logEntry ++ ". Details bs=" ++ show bs' ++ " bos=" ++ show bos ++ " s=" ++ show s
                 return "FAILED"
-            Right (_, _, merkleLeaf) -> do
-                let (ASN1Cert c) = cert $ timestampedEntry merkleLeaf
+            Right (_, _, merkleLeaf') -> do
+                let rawCert = cert' $ timestampedEntry' merkleLeaf'
+                debugM "" $ "raw cert: " ++ show (B64L.encode rawCert)
+                let c = x509Cert $ right $ decodeCertificate rawCert
                 let dn = certSubjectDN c
                 str <- E.evaluate $ snd $ snd $ last $ getDistinguishedElements dn 
                 return str
