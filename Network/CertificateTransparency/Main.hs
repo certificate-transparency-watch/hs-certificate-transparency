@@ -1,14 +1,13 @@
 {-# LANGUAGE OverloadedStrings, TypeOperators #-}
 
-import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Base64.Lazy as B64L
 
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative ((<$>))
 import Control.Concurrent (threadDelay, forkIO)
 import Control.Concurrent.Async
 import Control.Exception (SomeException)
 import qualified Control.Exception as E
-import Control.Monad (forever, forM_, liftM)
+import Control.Monad (forever, forM_)
 import Data.ASN1.Types (ASN1Error)
 import qualified Data.Binary as B
 import qualified Data.ByteString.Lazy as BSL
@@ -17,7 +16,7 @@ import Data.Certificate.X509
 import Database.PostgreSQL.Simple
 import Network.CertificateTransparency.Db
 import Network.CertificateTransparency.LogServerApi
-import Network.CertificateTransparency.StructParser
+import Network.CertificateTransparency.StructParser()
 import Network.CertificateTransparency.Types
 import Network.CertificateTransparency.Verification
 import System.Log.Logger
@@ -144,8 +143,8 @@ extractDistinguishedName :: LogEntry -> IO String
 extractDistinguishedName logEntry = do
     E.catch (do
         let bs = logEntryLeafInput logEntry
-        let merkleLeaf' = B.decodeOrFail $ BSL.pack $ BS.unpack $ bs
-        case merkleLeaf' of
+        let merkleLeaf'' = B.decodeOrFail $ BSL.pack $ BS.unpack $ bs
+        case merkleLeaf'' of
             Left (bs', bos, s) -> do
                 errorM "ct-watch-sync" $ "Failed decoding logentry " ++ show logEntry ++ ". Details bs=" ++ show bs' ++ " bos=" ++ show bos ++ " s=" ++ show s
                 return "FAILED"
