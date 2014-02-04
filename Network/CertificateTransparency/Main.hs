@@ -51,7 +51,7 @@ main = do
         syncLogEntriesForLog conn logServer = do
             debugM "sync" $ "Syncing " ++ show logServer
             start <- nextLogServerEntryForLogServer conn logServer
-            let end = start + 0
+            let end = start + 100
 
 
             entries' <- getEntries logServer (start, end)
