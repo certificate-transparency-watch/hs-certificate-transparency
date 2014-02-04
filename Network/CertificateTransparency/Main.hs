@@ -111,7 +111,7 @@ main = do
 
         setupLogging :: IO ()
         setupLogging = do
-            updateGlobalLogger rootLoggerName (setLevel DEBUG)
+            updateGlobalLogger rootLoggerName (setLevel INFO)
             infoM "main" "Logger started."
 
         logException :: SomeException -> IO ()
