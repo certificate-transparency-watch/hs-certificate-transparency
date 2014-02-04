@@ -111,7 +111,7 @@ main = do
 
         setupLogging :: IO ()
         setupLogging = do
-            updateGlobalLogger rootLoggerName (setLevel INFO)
+            updateGlobalLogger rootLoggerName (setLevel DEBUG)
             infoM "main" "Logger started."
 
         logException :: SomeException -> IO ()
@@ -123,10 +123,6 @@ main = do
         catchAny :: IO a -> (SomeException -> IO a) -> IO a
         catchAny action onE = tryAny action >>= either onE return
 
-
-
-right (Right a) = a
-
 extractDistinguishedName :: LogEntry -> IO String
 extractDistinguishedName logEntry = do
     E.catch (do
@@ -135,16 +131,21 @@ extractDistinguishedName logEntry = do
         case merkleLeaf'' of
             Left (bs', bos, s) -> do
                 errorM "ct-watch-sync" $ "Failed decoding logentry " ++ show logEntry ++ ". Details bs=" ++ show bs' ++ " bos=" ++ show bos ++ " s=" ++ show s
-                return "FAILED"
+                return "structdecoding-FAILED"
             Right (_, _, merkleLeaf') -> do
                 let rawCert = cert' $ timestampedEntry' merkleLeaf'
-                debugM "" $ "raw cert: " ++ show (B64L.encode rawCert)
-                let c = getCertificate $ right $ decodeSignedCertificate $ BS.pack $ BSL.unpack $ rawCert
-                let dn = certSubjectDN c
-                let san = [x | AltNameDNS x <- concat . map (\(ExtSubjectAltName e) -> e) . maybeToList . extensionGet . certExtensions $ c :: [AltName]]
-                str <- E.evaluate . last $ (map (show . snd) . getDistinguishedElements $ dn) ++ san
-                return str
+                let sd = decodeSignedCertificate $ BS.pack $ BSL.unpack $ rawCert
+                case sd of
+                    Left s -> do
+                        errorM "ct-watch-sync" $ "Failed decoding certificate: " ++ show (B64L.encode rawCert) ++ " with error " ++ show s
+                        return "decodeSignedCert-FAILED"
+                    Right c' -> do
+                        let c = getCertificate c'
+                        let dn = certSubjectDN c
+                        let san = [x | AltNameDNS x <- concat . map (\(ExtSubjectAltName e) -> e) . maybeToList . extensionGet . certExtensions $ c :: [AltName]]
+                        str <- E.evaluate . last $ (map (show . snd) . getDistinguishedElements $ dn) ++ san
+                        return str
         ) (\e -> do
                     errorM "sync" $ "ffff" ++ show (e :: ASN1Error)
-                    return "FAILED"
+                    return "genericasn1-FAILED"
           )
