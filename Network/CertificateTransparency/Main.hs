@@ -8,11 +8,11 @@ import Control.Concurrent.Async
 import Control.Exception (SomeException)
 import qualified Control.Exception as E
 import Control.Monad (forever, forM_)
-import Data.ASN1.Types (ASN1Error)
+import Data.ASN1.Error (ASN1Error)
 import qualified Data.Binary as B
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString as BS
-import Data.Certificate.X509
+import Data.X509
 import Database.PostgreSQL.Simple
 import Network.CertificateTransparency.Db
 import Network.CertificateTransparency.LogServerApi
@@ -138,9 +138,9 @@ extractDistinguishedName logEntry = do
             Right (_, _, merkleLeaf') -> do
                 let rawCert = cert' $ timestampedEntry' merkleLeaf'
                 debugM "" $ "raw cert: " ++ show (B64L.encode rawCert)
-                let c = x509Cert $ right $ decodeCertificate rawCert
+                let c = getCertificate $ right $ decodeSignedCertificate $ BS.pack $ BSL.unpack $ rawCert
                 let dn = certSubjectDN c
-                str <- E.evaluate $ snd $ snd $ last $ getDistinguishedElements dn 
+                str <- E.evaluate . show . snd . last . getDistinguishedElements $ dn
                 return str
         ) (\e -> do
                     errorM "sync" $ "ffff" ++ show (e :: ASN1Error)

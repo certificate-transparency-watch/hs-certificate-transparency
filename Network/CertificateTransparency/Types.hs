@@ -2,7 +2,7 @@ module Network.CertificateTransparency.Types where
 
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as LBS
-import Data.Certificate.X509
+import Data.X509
 import Data.Word
 
 data SignedTreeHead = SignedTreeHead
