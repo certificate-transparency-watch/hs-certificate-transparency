@@ -12,6 +12,7 @@ import Data.ASN1.Error (ASN1Error)
 import qualified Data.Binary as B
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString as BS
+import Data.Maybe
 import Data.X509
 import Database.PostgreSQL.Simple
 import Network.CertificateTransparency.Db
@@ -140,7 +141,8 @@ extractDistinguishedName logEntry = do
                 debugM "" $ "raw cert: " ++ show (B64L.encode rawCert)
                 let c = getCertificate $ right $ decodeSignedCertificate $ BS.pack $ BSL.unpack $ rawCert
                 let dn = certSubjectDN c
-                str <- E.evaluate . show . snd . last . getDistinguishedElements $ dn
+                let san = [x | AltNameDNS x <- concat . map (\(ExtSubjectAltName e) -> e) . maybeToList . extensionGet . certExtensions $ c :: [AltName]]
+                str <- E.evaluate . last $ (map (show . snd) . getDistinguishedElements $ dn) ++ san
                 return str
         ) (\e -> do
                     errorM "sync" $ "ffff" ++ show (e :: ASN1Error)
