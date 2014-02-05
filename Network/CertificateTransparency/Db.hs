@@ -3,6 +3,8 @@
 module Network.CertificateTransparency.Db
     ( logServers
     , nextLogServerEntryForLogServer
+    , updateDomainOfLogEntry
+    , lookupUnprocessedLogEntries
     , sthExists
     , insertSth
     , lookupKnownGoodSth
@@ -12,6 +14,7 @@ module Network.CertificateTransparency.Db
 
 import Control.Applicative
 import Control.Monad
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Base64 as B64
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromRow
@@ -20,6 +23,16 @@ import Database.PostgreSQL.Simple.ToRow
 
 import Network.CertificateTransparency.Types
 
+updateDomainOfLogEntry :: Connection -> LogServer -> Int -> LogEntry -> String -> IO ()
+updateDomainOfLogEntry conn ls idx le s = do
+    let sql = "UPDATE log_entry SET domain = ? WHERE log_server_id = ? AND idx = ? AND leaf_input = ? and extra_data = ?"
+    _ <- execute conn sql $ (s, logServerId ls, idx) :. le
+    return ()
+
+lookupUnprocessedLogEntries :: Connection -> LogServer -> IO [Only Int :. LogEntry]
+lookupUnprocessedLogEntries conn logServer = do
+    let sql = "SELECT idx, leaf_input, extra_data FROM log_entry WHERE log_server_id = ? AND domain is null LIMIT 500"
+    query conn sql (Only $ logServerId logServer)
 
 logServers :: Connection -> IO [LogServer]
 logServers conn = withTransaction conn $ do
@@ -79,6 +92,9 @@ instance FromRow SignedTreeHead where
 
 instance FromRow LogServer where
      fromRow = LogServer <$> field <*> field <*> field
+
+instance FromRow LogEntry where
+    fromRow = LogEntry <$> field <*> field
 
 instance ToRow LogEntry where
     toRow d = [ toField (Binary $ logEntryLeafInput d)

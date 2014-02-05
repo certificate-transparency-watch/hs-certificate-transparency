@@ -36,6 +36,7 @@ main = do
     _ <- forkIO . everyMinute $ catchAny pollLogServersForSth logException
     _ <- forkIO . everyMinute $ catchAny processSth logException
     _ <- forkIO . everySeconds 20 $ catchAny syncLogEntries logException
+    _ <- forkIO . everySeconds 20 $ catchAny processLogEntries logException
     forever $ threadDelay (10*1000*1000)
 
     where
@@ -53,15 +54,27 @@ main = do
             start <- nextLogServerEntryForLogServer conn logServer
             let end = start + 100
 
-
             entries' <- getEntries logServer (start, end)
             case entries' of
                 Just entries -> do
-                    domains <- mapM extractDistinguishedName entries
-                    let parameters = map (\(e, i, d) -> (logServerId logServer, i, d) :. e) $ zip3 entries [start..end] domains
-                    _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, domain, leaf_input, extra_data) VALUES (?, ?, ?, ?, ?)" parameters
+                    let parameters = map (\(e, i) -> (logServerId logServer, i) :. e) $ zip entries [start..end]
+                    _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, leaf_input, extra_data) VALUES (?, ?, ?, ?)" parameters
                     return ()
                 Nothing -> debugM "sync" "No entries" >> return ()
+
+        processLogEntries :: IO ()
+        processLogEntries = do
+            conn <- connect connectInfo
+            servers <- logServers conn
+            forM_ servers $ \server -> do
+                entries <- lookupUnprocessedLogEntries conn server
+                mapM_ (\(Only i :. le) -> processLogEntry conn server i le) entries
+            close conn
+
+        processLogEntry :: Connection -> LogServer -> Int -> LogEntry -> IO ()
+        processLogEntry conn logServer idx logEntry = do
+            name <- extractDistinguishedName logEntry
+            updateDomainOfLogEntry conn logServer idx logEntry name
 
         pollLogServersForSth :: IO ()
         pollLogServersForSth = do
