@@ -35,8 +35,8 @@ main = do
     setupLogging
     _ <- forkIO . everyMinute $ catchAny pollLogServersForSth logException
     _ <- forkIO . everyMinute $ catchAny processSth logException
-    _ <- forkIO . everySeconds 20 $ catchAny syncLogEntries logException
-    _ <- forkIO . everySeconds 20 $ catchAny processLogEntries logException
+    _ <- forkIO . everySeconds 10 $ catchAny syncLogEntries logException
+    _ <- forkIO . everySeconds 10 $ catchAny processLogEntries logException
     forever $ threadDelay (10*1000*1000)
 
     where
@@ -52,7 +52,7 @@ main = do
         syncLogEntriesForLog conn logServer = do
             debugM "sync" $ "Syncing " ++ show logServer
             start <- nextLogServerEntryForLogServer conn logServer
-            let end = start + 100
+            let end = start + 1000
 
             if start > 1750000
                 then debugM "sync" "Not syncing, due to hitting upper limit" >> return ()
