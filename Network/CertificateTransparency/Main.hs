@@ -54,13 +54,16 @@ main = do
             start <- nextLogServerEntryForLogServer conn logServer
             let end = start + 100
 
-            entries' <- getEntries logServer (start, end)
-            case entries' of
-                Just entries -> do
-                    let parameters = map (\(e, i) -> (logServerId logServer, i) :. e) $ zip entries [start..end]
-                    _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, leaf_input, extra_data) VALUES (?, ?, ?, ?)" parameters
-                    return ()
-                Nothing -> debugM "sync" "No entries" >> return ()
+            if start > 1750000
+                then debugM "sync" "Not syncing, due to hitting upper limit" >> return ()
+                else do
+                    entries' <- getEntries logServer (start, end)
+                    case entries' of
+                        Just entries -> do
+                            let parameters = map (\(e, i) -> (logServerId logServer, i) :. e) $ zip entries [start..end]
+                            _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, leaf_input, extra_data) VALUES (?, ?, ?, ?)" parameters
+                            return ()
+                        Nothing -> debugM "sync" "No entries" >> return ()
 
         processLogEntries :: IO ()
         processLogEntries = do
