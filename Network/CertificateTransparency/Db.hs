@@ -5,6 +5,7 @@ module Network.CertificateTransparency.Db
     , nextLogServerEntryForLogServer
     , updateDomainOfLogEntry
     , lookupUnprocessedLogEntries
+    , insertCert
     , sthExists
     , insertSth
     , lookupKnownGoodSth
@@ -15,6 +16,7 @@ module Network.CertificateTransparency.Db
 import Control.Applicative
 import Control.Monad
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Base64 as B64
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromRow
@@ -22,6 +24,12 @@ import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.ToRow
 
 import Network.CertificateTransparency.Types
+
+insertCert :: Connection -> BSL.ByteString -> IO ()
+insertCert conn bs = do
+    let sql = "INSERT INTO cert (md5, certificate) SELECT md5(?)::bytea, ? WHERE NOT EXISTS (SELECT md5 FROM cert WHERE md5 = md5(?)::bytea)"
+    _ <- execute conn sql $ (Binary bs, Binary bs, Binary bs)
+    return ()
 
 updateDomainOfLogEntry :: Connection -> LogServer -> Int -> LogEntry -> String -> IO ()
 updateDomainOfLogEntry conn ls idx le s = do

@@ -167,5 +167,15 @@ extractDistinguishedName logEntry = do
                     return "genericasn1-FAILED"
           )
 
+extractCert :: LogEntry -> Maybe BSL.ByteString
+extractCert logEntry = ans
+    where
+        bs = logEntryLeafInput logEntry
+        merkleLeaf'' = B.decodeOrFail $ BSL.pack $ BS.unpack $ bs
+        ans = case merkleLeaf'' of
+            Left (bs', bos, s) -> Nothing
+            Right (_, _, merkleLeaf') -> Just $ cert' $ timestampedEntry' merkleLeaf'
+
+
 canDecode :: ASN1CharacterString -> Bool
 canDecode (ASN1CharacterString e _) = e `elem` [IA5, UTF8, Printable, T61]
