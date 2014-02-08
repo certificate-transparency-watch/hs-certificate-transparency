@@ -31,7 +31,7 @@ updateDomainOfLogEntry conn ls idx le s = do
 
 lookupUnprocessedLogEntries :: Connection -> LogServer -> IO [Only Int :. LogEntry]
 lookupUnprocessedLogEntries conn logServer = do
-    let sql = "SELECT idx, leaf_input, extra_data FROM log_entry WHERE log_server_id = ? AND domain is null LIMIT 500"
+    let sql = "SELECT idx, leaf_input, extra_data FROM log_entry WHERE log_server_id = ? AND domain is null ORDER BY idx asc LIMIT 100"
     query conn sql (Only $ logServerId logServer)
 
 logServers :: Connection -> IO [LogServer]
