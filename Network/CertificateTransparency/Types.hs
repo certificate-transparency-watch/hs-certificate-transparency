@@ -24,7 +24,6 @@ data LogServer = LogServer
 
 data LogEntry = LogEntry
     { logEntryLeafInput :: ByteString
-    , logEntryExtraData :: ByteString
     } deriving Show
 
 data LogEntries = LogEntries

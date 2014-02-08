@@ -33,13 +33,13 @@ insertCert conn bs = do
 
 updateDomainOfLogEntry :: Connection -> LogServer -> Int -> LogEntry -> String -> IO ()
 updateDomainOfLogEntry conn ls idx le s = do
-    let sql = "UPDATE log_entry SET domain = ? WHERE log_server_id = ? AND idx = ? AND leaf_input = ? and extra_data = ?"
+    let sql = "UPDATE log_entry SET domain = ? WHERE log_server_id = ? AND idx = ? AND leaf_input = ?"
     _ <- execute conn sql $ (s, logServerId ls, idx) :. le
     return ()
 
 lookupUnprocessedLogEntries :: Connection -> LogServer -> IO [Only Int :. LogEntry]
 lookupUnprocessedLogEntries conn logServer = do
-    let sql = "SELECT idx, leaf_input, extra_data FROM log_entry WHERE log_server_id = ? AND domain is null ORDER BY idx asc LIMIT 100"
+    let sql = "SELECT idx, leaf_input FROM log_entry WHERE log_server_id = ? AND domain is null ORDER BY idx asc LIMIT 100"
     query conn sql (Only $ logServerId logServer)
 
 logServers :: Connection -> IO [LogServer]
@@ -102,10 +102,9 @@ instance FromRow LogServer where
      fromRow = LogServer <$> field <*> field <*> field
 
 instance FromRow LogEntry where
-    fromRow = LogEntry <$> field <*> field
+    fromRow = LogEntry <$> field
 
 instance ToRow LogEntry where
     toRow d = [ toField (Binary $ logEntryLeafInput d)
-              , toField (Binary $ logEntryExtraData d)
               ]
 

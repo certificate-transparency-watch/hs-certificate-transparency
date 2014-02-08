@@ -61,8 +61,11 @@ main = do
                     entries' <- getEntries logServer (start, end)
                     case entries' of
                         Just entries -> do
+                            let certs = (concat . map (maybeToList . extractCert) $ entries)
+                            mapM_ (insertCert conn) certs
+
                             let parameters = map (\(e, i) -> (logServerId logServer, i) :. e) $ zip entries [start..end]
-                            _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, leaf_input, extra_data) VALUES (?, ?, ?, ?)" parameters
+                            _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, leaf_input) VALUES (?, ?, ?, ?)" parameters
                             return ()
                         Nothing -> debugM "sync" "No entries" >> return ()
 

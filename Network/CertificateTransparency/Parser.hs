@@ -23,8 +23,7 @@ instance FromJSON ConsistencyProof where
 
 instance FromJSON LogEntry where
     parseJSON (Object v) = LogEntry <$>
-                            liftM B64.decodeLenient (v .: "leaf_input") <*>
-                            liftM B64.decodeLenient (v .: "extra_data")
+                            liftM B64.decodeLenient (v .: "leaf_input")
     parseJSON _          = mzero
 
 instance FromJSON LogEntries where
