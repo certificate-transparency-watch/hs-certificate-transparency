@@ -26,6 +26,10 @@ data LogEntry = LogEntry
     { logEntryLeafInput :: ByteString
     } deriving Show
 
+data LogEntryDb = LogEntryDb
+    { logEntryDbCert :: ByteString
+    }
+
 data LogEntries = LogEntries
     { logEntriesEntries :: [LogEntry]
     } deriving Show

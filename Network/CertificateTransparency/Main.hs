@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings, TypeOperators #-}
 
-import qualified Data.ByteString.Base64.Lazy as B64L
+import qualified Data.ByteString.Base64 as B64
+import qualified Crypto.Hash.MD5 as MD5
 
 import Control.Applicative ((<$>))
 import Control.Concurrent (threadDelay, forkIO)
@@ -53,7 +54,7 @@ main = do
         syncLogEntriesForLog conn logServer = do
             debugM "sync" $ "Syncing " ++ show logServer
             start <- nextLogServerEntryForLogServer conn logServer
-            let end = start + 1000
+            let end = start + 2000
 
             if start > 1750000
                 then debugM "sync" "Not syncing, due to hitting upper limit" >> return ()
@@ -61,11 +62,13 @@ main = do
                     entries' <- getEntries logServer (start, end)
                     case entries' of
                         Just entries -> do
-                            let certs = (concat . map (maybeToList . extractCert) $ entries)
+                            let certs = concat . map (maybeToList . extractCert) $ entries
+
+                            
                             mapM_ (insertCert conn) certs
 
-                            let parameters = map (\(e, i) -> (logServerId logServer, i) :. e) $ zip entries [start..end]
-                            _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, leaf_input) VALUES (?, ?, ?, ?)" parameters
+                            let parameters = map (\(cert, i) -> (logServerId logServer, i, Binary $ MD5.hashlazy cert)) $ zip certs [start..end]
+                            _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, cert_md5) VALUES (?, ?, ?)" parameters
                             return ()
                         Nothing -> debugM "sync" "No entries" >> return ()
 
@@ -78,10 +81,10 @@ main = do
                 mapM_ (\(Only i :. le) -> processLogEntry conn server i le) entries
             close conn
 
-        processLogEntry :: Connection -> LogServer -> Int -> LogEntry -> IO ()
+        processLogEntry :: Connection -> LogServer -> Int -> LogEntryDb -> IO ()
         processLogEntry conn logServer idx logEntry = do
             name <- extractDistinguishedName logEntry
-            updateDomainOfLogEntry conn logServer idx logEntry name
+            updateDomainOfLogEntry conn logServer idx name
 
         pollLogServersForSth :: IO ()
         pollLogServersForSth = do
@@ -143,21 +146,14 @@ main = do
         catchAny :: IO a -> (SomeException -> IO a) -> IO a
         catchAny action onE = tryAny action >>= either onE return
 
-extractDistinguishedName :: LogEntry -> IO String
+extractDistinguishedName :: LogEntryDb -> IO String
 extractDistinguishedName logEntry = do
     E.catch (do
-        let bs = logEntryLeafInput logEntry
-        let merkleLeaf'' = B.decodeOrFail $ BSL.pack $ BS.unpack $ bs
-        case merkleLeaf'' of
-            Left (bs', bos, s) -> do
-                errorM "ct-watch-sync" $ "Failed decoding logentry " ++ show logEntry ++ ". Details bs=" ++ show bs' ++ " bos=" ++ show bos ++ " s=" ++ show s
-                return "structdecoding-FAILED"
-            Right (_, _, merkleLeaf') -> do
-                let rawCert = cert' $ timestampedEntry' merkleLeaf'
-                let sd = decodeSignedCertificate $ BS.pack $ BSL.unpack $ rawCert
+                let rawCert = logEntryDbCert logEntry
+                let sd = decodeSignedCertificate $ rawCert
                 case sd of
                     Left s -> do
-                        errorM "ct-watch-sync" $ "Failed decoding certificate: " ++ show (B64L.encode rawCert) ++ " with error " ++ show s
+                        errorM "ct-watch-sync" $ "Failed decoding certificate: " ++ show (B64.encode rawCert) ++ " with error " ++ show s
                         return "decodeSignedCert-FAILED"
                     Right c' -> do
                         let c = getCertificate c'
@@ -176,7 +172,7 @@ extractCert logEntry = ans
         bs = logEntryLeafInput logEntry
         merkleLeaf'' = B.decodeOrFail $ BSL.pack $ BS.unpack $ bs
         ans = case merkleLeaf'' of
-            Left (bs', bos, s) -> Nothing
+            Left (bs', bos, s) -> error $ "LogEntry " ++ show (B64.encode bs) ++ " failed to parse. Bs=" ++ show bs' ++ " bos=" ++ show bos ++ " s=" ++ show s
             Right (_, _, merkleLeaf') -> Just $ cert' $ timestampedEntry' merkleLeaf'
 
 

@@ -15,6 +15,7 @@ module Network.CertificateTransparency.Db
 
 import Control.Applicative
 import Control.Monad
+import qualified Crypto.Hash.MD5 as MD5
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Base64 as B64
@@ -27,19 +28,27 @@ import Network.CertificateTransparency.Types
 
 insertCert :: Connection -> BSL.ByteString -> IO ()
 insertCert conn bs = do
-    let sql = "INSERT INTO cert (md5, certificate) SELECT md5(?)::bytea, ? WHERE NOT EXISTS (SELECT md5 FROM cert WHERE md5 = md5(?)::bytea)"
-    _ <- execute conn sql $ (Binary bs, Binary bs, Binary bs)
+    let hash = MD5.hashlazy bs
+
+    let sql = "SELECT md5 FROM cert WHERE md5 = ?"
+    results <- query conn sql $ (Only $ Binary $ hash) :: IO [Only BS.ByteString]
+
+    if (null results)
+        then do
+            let iSql = "INSERT INTO cert (md5, certificate) VALUES (?, ?)"
+            _ <- execute conn iSql $ (Binary hash, Binary bs)
+            return ()
+        else return ()
+
+updateDomainOfLogEntry :: Connection -> LogServer -> Int -> String -> IO ()
+updateDomainOfLogEntry conn ls idx s = do
+    let sql = "UPDATE log_entry SET domain = ? WHERE log_server_id = ? AND idx = ?"
+    _ <- execute conn sql $ (s, logServerId ls, idx)
     return ()
 
-updateDomainOfLogEntry :: Connection -> LogServer -> Int -> LogEntry -> String -> IO ()
-updateDomainOfLogEntry conn ls idx le s = do
-    let sql = "UPDATE log_entry SET domain = ? WHERE log_server_id = ? AND idx = ? AND leaf_input = ?"
-    _ <- execute conn sql $ (s, logServerId ls, idx) :. le
-    return ()
-
-lookupUnprocessedLogEntries :: Connection -> LogServer -> IO [Only Int :. LogEntry]
+lookupUnprocessedLogEntries :: Connection -> LogServer -> IO [Only Int :. LogEntryDb]
 lookupUnprocessedLogEntries conn logServer = do
-    let sql = "SELECT idx, leaf_input FROM log_entry WHERE log_server_id = ? AND domain is null ORDER BY idx asc LIMIT 100"
+    let sql = "SELECT idx, certificate FROM log_entry JOIN cert ON log_entry.cert_md5 = cert.md5 WHERE log_server_id = ? AND domain is null ORDER BY idx asc LIMIT 1000"
     query conn sql (Only $ logServerId logServer)
 
 logServers :: Connection -> IO [LogServer]
@@ -104,7 +113,5 @@ instance FromRow LogServer where
 instance FromRow LogEntry where
     fromRow = LogEntry <$> field
 
-instance ToRow LogEntry where
-    toRow d = [ toField (Binary $ logEntryLeafInput d)
-              ]
-
+instance FromRow LogEntryDb where
+    fromRow = LogEntryDb <$> field
