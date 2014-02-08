@@ -4,6 +4,7 @@ CREATE TABLE log_server (
 );
 
 INSERT INTO log_server (id, prefix) VALUES (1, 'ct.googleapis.com/pilot');
+INSERT INTO log_server (id, prefix) VALUES (2, 'ct.googleapis.com/aviator');
 
 ALTER TABLE sth
     ADD COLUMN log_server_id int
