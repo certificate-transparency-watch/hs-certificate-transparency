@@ -56,21 +56,17 @@ main = do
             start <- nextLogServerEntryForLogServer conn logServer
             let end = start + 2000
 
-            if start > 1750000
-                then debugM "sync" "Not syncing, due to hitting upper limit" >> return ()
-                else do
-                    entries' <- getEntries logServer (start, end)
-                    case entries' of
-                        Just entries -> do
-                            let certs = concat . map (maybeToList . extractCert) $ entries
+            entries' <- getEntries logServer (start, end)
+            case entries' of
+                Just entries -> do
+                    let certs = concat . map (maybeToList . extractCert) $ entries
 
-                            
-                            mapM_ (insertCert conn) certs
+                    mapM_ (insertCert conn) certs
 
-                            let parameters = map (\(cert, i) -> (logServerId logServer, i, Binary $ MD5.hashlazy cert)) $ zip certs [start..end]
-                            _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, cert_md5) VALUES (?, ?, ?)" parameters
-                            return ()
-                        Nothing -> debugM "sync" "No entries" >> return ()
+                    let parameters = map (\(cert, i) -> (logServerId logServer, i, Binary $ MD5.hashlazy cert)) $ zip certs [start..end]
+                    _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, cert_md5) VALUES (?, ?, ?)" parameters
+                    return ()
+                Nothing -> debugM "sync" "No entries" >> return ()
 
         processLogEntries :: IO ()
         processLogEntries = do
