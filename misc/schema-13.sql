@@ -1,0 +1,4 @@
+BEGIN TRANSACTION;
+ALTER TABLE log_entry ADD COLUMN log_entry_type smallint NOT NULL DEFAULT 0;
+ALTER TABLE log_entry ALTER COLUMN log_entry_type DROP DEFAULT;
+COMMIT;

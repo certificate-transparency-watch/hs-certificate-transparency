@@ -61,12 +61,19 @@ main = do
                 Just entries -> do
                     let certs = concat . map (maybeToList . extractCert) $ entries
 
-                    mapM_ (insertCert conn) certs
+                    mapM_ (insertCert conn) (map extractByteString certs)
 
-                    let parameters = map (\(cert, i) -> (logServerId logServer, i, Binary $ MD5.hashlazy cert)) $ zip certs [start..end]
-                    _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, cert_md5) VALUES (?, ?, ?)" parameters
+                    let parameters = map (\(cert, i) -> (logServerId logServer, i, certToEntryType cert, Binary . MD5.hashlazy . extractByteString $ cert)) $ zip certs [start..end]
+                    _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, log_entry_type, cert_md5) VALUES (?, ?, ?, ?)" parameters
                     return ()
                 Nothing -> debugM "sync" "No entries" >> return ()
+
+        extractByteString (ASN1Cert' s) = s
+        extractByteString (PreCert' s) = s
+
+        certToEntryType :: Cert' -> Int
+        certToEntryType (ASN1Cert' s) = 0
+        certToEntryType (PreCert' s) = 1
 
         processLogEntries :: IO ()
         processLogEntries = do
@@ -162,7 +169,7 @@ extractDistinguishedName logEntry = do
                     return "genericasn1-FAILED"
           )
 
-extractCert :: LogEntry -> Maybe BSL.ByteString
+extractCert :: LogEntry -> Maybe Cert'
 extractCert logEntry = ans
     where
         bs = logEntryLeafInput logEntry
