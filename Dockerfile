@@ -7,7 +7,7 @@ RUN echo "deb http://archive.ubuntu.com/ubuntu precise main universe" > /etc/apt
 RUN apt-get update
 RUN apt-get install -y ca-certificates wget postgresql-server-dev-all daemontools
 
-RUN wget -q https://github.com/certificate-transparency-watch/hs-certificate-transparency/releases/download/0.14/hs-certificate-transparency
+RUN wget -q https://github.com/certificate-transparency-watch/hs-certificate-transparency/releases/download/0.15/hs-certificate-transparency
 
 ADD run /run/
 
