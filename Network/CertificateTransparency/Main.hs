@@ -162,8 +162,10 @@ extractDistinguishedName logEntry = do
                         let c = getCertificate c'
                         let dn = certSubjectDN c
                         let san = [x | AltNameDNS x <- concat . map (\(ExtSubjectAltName e) -> e) . maybeToList . extensionGet . certExtensions $ c :: [AltName]]
-                        str <- E.evaluate . last $ (concat . map (maybeToList . asn1CharacterToString) . filter canDecode . map snd . getDistinguishedElements $ dn) ++ san
-                        return str
+                        str <- E.evaluate $ (concat . map (maybeToList . asn1CharacterToString) . filter canDecode . map snd . getDistinguishedElements $ dn) ++ san
+                        return $ if (null str)
+                            then "noSANs-FAILED"
+                            else last str
         ) (\e -> do
                     errorM "sync" $ "ffff" ++ show (e :: ASN1Error)
                     return "genericasn1-FAILED"
