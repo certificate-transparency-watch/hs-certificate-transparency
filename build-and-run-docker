@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+
+docker build -t=ct-watch-processor .
+docker stop service-ct-watch-processor || true
+docker rm service-ct-watch-processor || true
+docker run -d -p 8080:80 --name=service-ct-watch-processor ct-watch-processor
