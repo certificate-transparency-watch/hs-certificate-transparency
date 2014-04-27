@@ -8,12 +8,14 @@ import Control.Concurrent (threadDelay, forkIO)
 import Control.Concurrent.Async
 import Control.Exception (SomeException)
 import qualified Control.Exception as E
-import Control.Monad (forever, forM_)
+import Control.Monad (forever, forM_, when)
 import Data.ASN1.Error (ASN1Error)
 import qualified Data.Binary as B
+import Data.Binary.Get (ByteOffset)
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString as BS
 import Data.ASN1.Types.String
+import Data.Either
 import Data.Maybe
 import Data.X509
 import Database.PostgreSQL.Simple
@@ -58,7 +60,10 @@ main = do
             entries' <- getEntries logServer (start, end)
             case entries' of
                 Just entries -> do
-                    let certs = concat . map (maybeToList . extractCert) $ entries
+                    let certs' = map extractCert entries
+                    when (not . null . lefts $ certs') (error . show . lefts $ certs')
+
+                    let certs = rights certs'
 
                     mapM_ (insertCert conn) (map extractByteString certs)
 
@@ -170,15 +175,8 @@ extractDistinguishedName logEntry = do
                     return "genericasn1-FAILED"
           )
 
-extractCert :: LogEntry -> Maybe Cert'
-extractCert logEntry = ans
-    where
-        bs = logEntryLeafInput logEntry
-        merkleLeaf'' = B.decodeOrFail $ BSL.pack $ BS.unpack $ bs
-        ans = case merkleLeaf'' of
-            Left (bs', bos, s) -> error $ "LogEntry " ++ show (B64.encode bs) ++ " failed to parse. Bs=" ++ show bs' ++ " bos=" ++ show bos ++ " s=" ++ show s
-            Right (_, _, merkleLeaf') -> Just $ cert' $ timestampedEntry' merkleLeaf'
-
+extractCert :: LogEntry -> Either (BSL.ByteString, ByteOffset, String) Cert'
+extractCert logEntry = (\(_, _, m) -> cert' . timestampedEntry' $ m) <$> (B.decodeOrFail . BSL.pack . BS.unpack . logEntryLeafInput $ logEntry)
 
 canDecode :: ASN1CharacterString -> Bool
 canDecode (ASN1CharacterString e _) = e `elem` [IA5, UTF8, Printable, T61]
