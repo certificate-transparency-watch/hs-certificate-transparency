@@ -46,9 +46,8 @@ main = do
         syncLogEntries = do
             conn <- connect connectInfo
             servers <- logServers conn
-            mapM_ (syncLogEntriesForLog conn) servers
+            mapM_ (\s -> catchAny (syncLogEntriesForLog conn s) logException) servers
             close conn
-
 
         syncLogEntriesForLog :: Connection -> LogServer -> IO ()
         syncLogEntriesForLog conn logServer = do
