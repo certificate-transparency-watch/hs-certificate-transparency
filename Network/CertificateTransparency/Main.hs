@@ -19,6 +19,7 @@ import Data.Either
 import Data.Maybe
 import Data.X509
 import Database.PostgreSQL.Simple
+import Prelude hiding (repeat)
 import Network.CertificateTransparency.Db
 import Network.CertificateTransparency.LogServerApi
 import Network.CertificateTransparency.StructParser()
@@ -37,9 +38,9 @@ connectInfo = defaultConnectInfo {
 main :: IO ()
 main = do
     setupLogging
-    _ <- forkIO . everyMinute $ catchAny pollLogServersForSth logException
-    _ <- forkIO . everyMinute $ catchAny processSth logException
-    _ <- forkIO . everySeconds 10 $ catchAny syncLogEntries logException
+    _ <- forkIO . everyMinutes 1 $ catchAny pollLogServersForSth logException
+    _ <- forkIO . everyMinutes 1 $ catchAny processSth logException
+    _ <- forkIO . everyMinutes 30 $ catchAny syncLogEntries logException
     _ <- forkIO . everySeconds 10 $ catchAny processLogEntries logException
     forever $ threadDelay (10*1000*1000)
 
@@ -48,10 +49,10 @@ main = do
         syncLogEntries = do
             conn <- connect connectInfo
             servers <- logServers conn
-            mapM_ (\s -> catchAny (syncLogEntriesForLog conn s) logException) servers
+            _ <- mapConcurrently (\s -> repeat 10 10 (*2) (syncLogEntriesForLog conn s)) servers
             close conn
 
-        syncLogEntriesForLog :: Connection -> LogServer -> IO ()
+        syncLogEntriesForLog :: Connection -> LogServer -> IO Bool
         syncLogEntriesForLog conn logServer = do
             debugM "sync" $ "Syncing " ++ show logServer
             start <- nextLogServerEntryForLogServer conn logServer
@@ -69,8 +70,8 @@ main = do
 
                     let parameters = map (\(cert, i) -> (logServerId logServer, i, certToEntryType cert, Binary . MD5.hashlazy . extractByteString $ cert)) $ zip certs [start..end]
                     _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, log_entry_type, cert_md5) VALUES (?, ?, ?, ?)" parameters
-                    return ()
-                Nothing -> debugM "sync" "No entries" >> return ()
+                    return True
+                Nothing -> debugM "sync" "No entries" >> return False
 
         extractByteString (ASN1Cert' s) = s
         extractByteString (PreCert' s) = s
@@ -136,7 +137,7 @@ main = do
         isGood (Just b) = b
         isGood Nothing  = False
 
-        everyMinute a = forever $ a >> threadDelay (1*60*1000*1000)
+        everyMinutes n a = forever $ a >> threadDelay (n*60*1000*1000)
         everySeconds n a = forever $ a >> threadDelay (n*1000*1000)
 
         setupLogging :: IO ()
@@ -144,14 +145,21 @@ main = do
             updateGlobalLogger rootLoggerName (setLevel DEBUG)
             infoM "main" "Logger started."
 
-        logException :: SomeException -> IO ()
-        logException e = errorM "processor" ("Exception: " ++ show e)
+logException :: SomeException -> IO ()
+logException e = errorM "processor" ("Exception: " ++ show e)
 
-        tryAny :: IO a -> IO (Either SomeException a)
-        tryAny action = withAsync action waitCatch
+tryAny :: IO a -> IO (Either SomeException a)
+tryAny action = withAsync action waitCatch
 
-        catchAny :: IO a -> (SomeException -> IO a) -> IO a
-        catchAny action onE = tryAny action >>= either onE return
+catchAny :: IO a -> (SomeException -> IO a) -> IO a
+catchAny action onE = tryAny action >>= either onE return
+
+repeat :: Int -> Int -> (Int -> Int) -> IO Bool -> IO Bool
+repeat initial currentTime backoffFunction action = do
+    threadDelay $ currentTime*1000
+    res <- catchAny action (\e -> logException e >> return False)
+    let nextTime = if res then initial else backoffFunction currentTime
+    repeat initial nextTime backoffFunction action
 
 extractDistinguishedName :: LogEntryDb -> IO String
 extractDistinguishedName logEntry = do
