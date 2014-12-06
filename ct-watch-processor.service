@@ -1,0 +1,14 @@
+[Unit]
+Description=ct-watch-processor
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=on-failure
+RestartSec=10
+ExecStartPre=-/usr/bin/docker rm service-ct-watch-processor
+ExecStart=/usr/bin/docker run --name=service-ct-watch-processor ct-watch-processor
+ExecStop=/usr/bin/docker stop -t 2 service-ct-watch-processor
+
+[Install]
+WantedBy=local.target

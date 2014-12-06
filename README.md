@@ -13,6 +13,3 @@ Execute the schema migration scripts: `misc/schema-*.sql`
 
 ## How to run
     .cabal-sandbox/bin/hs-certificate-transparency
-
-## Docker
-I run hs-certificate-transparency via Docker. The Dockerfile is at https://github.com/certificate-transparency-watch/hs-certificate-transparency/blob/master/Dockerfile

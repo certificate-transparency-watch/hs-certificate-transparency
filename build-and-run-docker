@@ -1,7 +1,0 @@
-#!/bin/sh
-set -eu
-
-docker build -t=ct-watch-processor .
-docker stop service-ct-watch-processor || true
-docker rm service-ct-watch-processor || true
-docker run -d --name=service-ct-watch-processor ct-watch-processor
