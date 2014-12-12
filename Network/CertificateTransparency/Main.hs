@@ -49,7 +49,7 @@ main = do
         syncLogEntries = do
             conn <- connect connectInfo
             servers <- logServers conn
-            _ <- mapConcurrently (\s -> repeat 10 10 (*2) (syncLogEntriesForLog conn s)) servers
+            _ <- mapConcurrently (\s -> repeat 2 2 (*2) (syncLogEntriesForLog conn s)) servers
             close conn
 
         syncLogEntriesForLog :: Connection -> LogServer -> IO Bool
