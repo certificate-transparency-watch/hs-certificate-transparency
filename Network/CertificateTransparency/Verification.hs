@@ -11,8 +11,9 @@ import Data.List (sortBy)
 import Data.Ord (comparing)
 
 checkConsistencyProof :: SignedTreeHead -> SignedTreeHead -> ConsistencyProof -> Bool
-checkConsistencyProof h1 h2 p = firstTreeIsValid && secondTreeIsValid
+checkConsistencyProof h1 h2 p = sameTree || (firstTreeIsValid && secondTreeIsValid)
     where
+        sameTree = rootHash h1 == rootHash h2 && treeSize h1 == treeSize h2 && proofCP p == []
         -- I've yet to convince myself this is check sufficient, or even non-broken.
         -- I suspect it's non-broken at least, because it passes for consistency proofs on
         -- Google's 22mill+ log server.

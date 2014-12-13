@@ -130,6 +130,20 @@ case_consistency_proof_from_google = do
 
     checkConsistencyProof prev next proof @?= True
 
+case_consistency_proof_with_same_tree_sizes = do
+    let prev = SignedTreeHead {
+          treeSize = 1979426
+        , timestamp = 1368891548960
+        , rootHash = B64.decodeLenient "8UkrV2kjoLcZ5fP0xxVtpsSsWAnvcV8aPv39vh96J2o="
+        , treeHeadSignature = B64.decodeLenient "BAMASDBGAiEAxv3KBaV64XsRfqX4L8D1RGeIpEaPMXf+zdVXJ1hU7ZkCIQDmkXZhX/b52LRnq+9LKI/XYr1hgT6uYmiwRGn7DCx3+A=="
+        }
+
+    let next = prev
+
+    let proof = ConsistencyProof { proofCP = [] }
+
+    checkConsistencyProof prev next proof @?= True
+
 
 leaf :: Int -> ByteString -> MerkleTree
 leaf i h = MerkleTree Empty i h Empty
