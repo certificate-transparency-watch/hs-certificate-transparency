@@ -16,6 +16,6 @@ Haskell implementation of [Certificate Transparency (CT)](http://www.certificate
 1. Insert record to `log_server` and `log_entry` ( https://github.com/certificate-transparency-watch/hs-certificate-transparency/commit/8fe620deb3042d1d5980333fb6166a52fedf4bfc )
 2. Restart `hs-certificate-transparency` (because it caches which log servers exist in memory)
 3. Set the first of the STH to be verified
-4. Note that STHs with the same treesize as the first STH won't pass STH consistency checks, due to a bug (issue #12), so delete them
+4. Note that STHs with the same treesize as the first STH won't pass STH consistency checks, due to a bug ( https://github.com/certificate-transparency-watch/hs-certificate-transparency/issues/12 ), so delete them
 5. Update health checks ( https://github.com/certificate-transparency-watch/ct-watch-http/commit/15e24d7be3b3da854b47436e4c2ff9a085c6d5ed )
 6. Update website ( https://github.com/certificate-transparency-watch/ct-watch-www/commit/98682f516e9d47a79ede700ff9dbb037c534f1fb )
