@@ -4,12 +4,10 @@ Haskell implementation of [Certificate Transparency (CT)](http://www.certificate
 
 ## How to build
 
-    cabal sandbox init
+    cabal test # warning: takes minutes
     cabal install
 
-## How to setup
-Create a DB: `misc/db-creation`
-Execute the schema migration scripts: `misc/schema-*.sql`
-
-## How to run
-    .cabal-sandbox/bin/hs-certificate-transparency
+## How to setup environment
+1. Set up a postgres DB `ct-watch`
+2. Set up postgres user with credentials `docker`:`docker`
+3. Execute the schema migration scripts: `psql -Udocker ct-watch < misc/schema/*.sql`
