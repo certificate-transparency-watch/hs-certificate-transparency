@@ -7,23 +7,24 @@ import Control.Monad
 import Data.Aeson
 import qualified Data.ByteString.Base64 as B64
 import Network.CertificateTransparency.Types
+import qualified Data.ByteString.Char8 as BC8
 
 instance FromJSON SignedTreeHead where
     parseJSON (Object v) = SignedTreeHead <$>
                             v .: "tree_size" <*>
                             v .: "timestamp" <*>
-                            liftM B64.decodeLenient (v .: "sha256_root_hash") <*>
-                            v .: "tree_head_signature"
+                            liftM (B64.decodeLenient . BC8.pack) (v .: "sha256_root_hash") <*>
+                            liftM (BC8.pack) (v .: "tree_head_signature")
     parseJSON _          = mzero
 
 instance FromJSON ConsistencyProof where
     parseJSON (Object v) = ConsistencyProof <$>
-                            liftM (map B64.decodeLenient) (v .: "consistency")
+                            liftM (map (B64.decodeLenient . BC8.pack)) (v .: "consistency")
     parseJSON _          = mzero
 
 instance FromJSON LogEntry where
     parseJSON (Object v) = LogEntry <$>
-                            liftM B64.decodeLenient (v .: "leaf_input")
+                            liftM (B64.decodeLenient . BC8.pack) (v .: "leaf_input")
     parseJSON _          = mzero
 
 instance FromJSON LogEntries where
