@@ -19,6 +19,7 @@ import qualified Crypto.Hash.MD5 as MD5
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Base64 as B64
+import qualified Data.Maybe
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.ToField
@@ -56,11 +57,11 @@ logServers conn = withTransaction conn $ do
     let sql = "SELECT * FROM log_server"
     query_ conn sql :: IO [LogServer]
 
-nextLogServerEntryForLogServer :: Connection -> LogServer -> IO Int
+nextLogServerEntryForLogServer :: Connection -> LogServer -> IO (Maybe Int)
 nextLogServerEntryForLogServer conn ls = do
     let sql = "SELECT max(idx)+1 FROM log_entry WHERE log_server_id = ?"
     result <- query conn sql (Only $ logServerId ls) :: IO [Only Int]
-    return $ only $ head $ result
+    return $ listToMaybe $ map only $ result
 
 sthExists :: Connection -> SignedTreeHead -> IO Bool
 sthExists conn sth = do
