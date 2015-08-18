@@ -15,7 +15,7 @@ executable hs-certificate-transparency
   main-is:             Network/CertificateTransparency/Main.hs
   -- other-modules:       
   GHC-Options:         -Wall
-  build-depends:       base == 4.7.*
+  build-depends:       base == 4.8.*
                      , aeson == 0.8.*
                      , asn1-encoding == 0.9.*
                      , asn1-types == 0.3.*
@@ -31,7 +31,7 @@ executable hs-certificate-transparency
                      , network-uri == 2.6.*
                      , postgresql-simple == 0.4.*
                      , text == 1.2.*
-                     , x509 == 1.5.*
+                     , x509 == 1.6.*
 
 test-suite tests
     type:           exitcode-stdio-1.0
@@ -42,7 +42,7 @@ test-suite tests
                   , tasty-th == 0.1.*
                   , HUnit == 1.2.*
                   , tasty-quickcheck == 0.8.*
-                  , base == 4.7.*
+                  , base == 4.8.*
                   , aeson == 0.8.*
                   , base64-bytestring == 1.0.*
                   , bytestring == 0.10.*
@@ -52,4 +52,4 @@ test-suite tests
                   , http-types == 0.8.*
                   , network-uri == 2.6.*
                   , text == 1.2.*
-                  , x509 == 1.5.*
+                  , x509 == 1.6.*
