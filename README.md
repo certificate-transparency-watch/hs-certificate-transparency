@@ -4,8 +4,8 @@ Haskell implementation of [Certificate Transparency (CT)](http://www.certificate
 
 ## How to build
 
-    cabal test # warning: takes minutes
-    cabal install
+    stack test # warning: takes minutes
+    stack build
 
 ## How to setup environment
 1. Set up a postgres DB `ct-watch`
