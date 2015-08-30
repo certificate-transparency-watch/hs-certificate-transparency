@@ -49,7 +49,7 @@ updateDomainOfLogEntry conn ls idx s = do
 
 lookupUnprocessedLogEntries :: Connection -> LogServer -> IO [Only Int :. LogEntryDb]
 lookupUnprocessedLogEntries conn logServer = do
-    let sql = "SELECT idx, certificate FROM log_entry JOIN cert ON log_entry.cert_md5 = cert.md5 WHERE log_server_id = ? AND domain is null ORDER BY idx asc LIMIT 1000"
+    let sql = "SELECT idx, certificate FROM log_entry JOIN cert ON log_entry.cert_md5 = cert.md5 WHERE log_server_id = ? AND domain is null LIMIT 1000"
     query conn sql (Only $ logServerId logServer)
 
 logServers :: Connection -> IO [LogServer]
