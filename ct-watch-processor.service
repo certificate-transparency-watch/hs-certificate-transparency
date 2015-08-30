@@ -4,7 +4,7 @@ Requires=docker.service
 After=docker.service
 
 [Service]
-Restart=on-failure
+Restart=always
 RestartSec=10
 ExecStartPre=-/usr/bin/docker rm service-ct-watch-processor
 ExecStart=/usr/bin/docker run --name=service-ct-watch-processor ct-watch-processor
