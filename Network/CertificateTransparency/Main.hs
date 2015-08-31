@@ -41,7 +41,7 @@ main = do
     _ <- forkIO . everyMinutes 1 $ catchAny pollLogServersForSth logException
     _ <- forkIO . everyMinutes 1 $ catchAny processSth logException
     _ <- forkIO . everyMinutes 30 $ catchAny syncLogEntries logException
-    _ <- forkIO . everySeconds 10 $ catchAny processLogEntries logException
+    _ <- forkIO . everySeconds 3 $ catchAny processLogEntries logException
     forever $ threadDelay (10*1000*1000)
 
     where
