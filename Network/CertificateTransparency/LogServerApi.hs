@@ -29,7 +29,7 @@ getSth logServer = do
 
     debugM "get-sth" $ BSLC.unpack rawNewSth
 
-    return (decode rawNewSth :: Maybe SignedTreeHead)
+    return $ decode rawNewSth
 
 
 getSthConsistency :: LogServer -> SignedTreeHead -> SignedTreeHead -> IO (Maybe ConsistencyProof)
@@ -43,7 +43,7 @@ getSthConsistency logServer h1 h2 = do
 
     debugM url $ BSLC.unpack r
 
-    return (decode r :: Maybe ConsistencyProof)
+    return $ decode r
 
 getEntries :: LogServer -> (Int, Int) -> IO (Maybe [LogEntry])
 getEntries logServer (start, end) = do
