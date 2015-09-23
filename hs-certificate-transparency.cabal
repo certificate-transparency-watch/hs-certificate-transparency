@@ -11,7 +11,7 @@ maintainer:          tom@tom-fitzhenry.me.uk
 build-type:          Simple
 cabal-version:       >=1.8
 
-executable ProcessLogEntries
+executable ctwatch-processlogentries
   main-is:             Network/CertificateTransparency/ProcessLogEntriesMain.hs
   GHC-Options:         -Wall
   build-depends:       base == 4.8.*

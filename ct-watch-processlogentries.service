@@ -1,0 +1,12 @@
+[Unit]
+Description=ct-watch-processlogentries
+Requires=postgresql.service
+After=postgresql.service
+
+[Service]
+Restart=always
+RestartSec=10
+ExecStart=/usr/local/bin/ctwatch-processlogentries
+
+[Install]
+WantedBy=multi-user.target

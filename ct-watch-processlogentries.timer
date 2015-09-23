@@ -1,0 +1,8 @@
+[Unit]
+Description=ct-watch-processlogentries
+
+[Service]
+OnCalendar=*-*-* *:*:0/30
+
+[Install]
+WantedBy=multi-user.target
