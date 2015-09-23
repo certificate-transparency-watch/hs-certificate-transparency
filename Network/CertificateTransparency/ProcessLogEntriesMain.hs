@@ -14,15 +14,8 @@ import Prelude hiding (repeat)
 import Network.CertificateTransparency.Db
 import Network.CertificateTransparency.StructParser()
 import Network.CertificateTransparency.Types
+import Network.CertificateTransparency.Util
 import System.Log.Logger
-
-connectInfo :: ConnectInfo
-connectInfo = defaultConnectInfo {
-    connectDatabase = "ct-watch"
-  , connectUser = "docker"
-  , connectPassword = "docker"
-  , connectHost = "172.17.42.1"
-}
 
 main :: IO ()
 main = do
@@ -42,11 +35,6 @@ main = do
         processLogEntry conn logServer idx logEntry = do
             name <- extractDistinguishedName logEntry
             updateDomainOfLogEntry conn logServer idx name
-
-        setupLogging :: IO ()
-        setupLogging = do
-            updateGlobalLogger rootLoggerName (setLevel DEBUG)
-            infoM "main" "Logger started."
 
 extractDistinguishedName :: LogEntryDb -> IO String
 extractDistinguishedName logEntry = do

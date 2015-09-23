@@ -18,16 +18,9 @@ import Network.CertificateTransparency.Db
 import Network.CertificateTransparency.LogServerApi
 import Network.CertificateTransparency.StructParser()
 import Network.CertificateTransparency.Types
+import Network.CertificateTransparency.Util
 import Network.CertificateTransparency.Verification
 import System.Log.Logger
-
-connectInfo :: ConnectInfo
-connectInfo = defaultConnectInfo {
-    connectDatabase = "ct-watch"
-  , connectUser = "docker"
-  , connectPassword = "docker"
-  , connectHost = "172.17.42.1"
-}
 
 main :: IO ()
 main = do
@@ -117,11 +110,6 @@ main = do
         isGood Nothing  = False
 
         everySeconds n a = forever $ a >> threadDelay (n*1000*1000)
-
-        setupLogging :: IO ()
-        setupLogging = do
-            updateGlobalLogger rootLoggerName (setLevel DEBUG)
-            infoM "main" "Logger started."
 
 logException :: SomeException -> IO ()
 logException e = errorM "processor" ("Exception: " ++ show e)
