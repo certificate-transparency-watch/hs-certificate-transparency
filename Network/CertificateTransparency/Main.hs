@@ -1,23 +1,17 @@
 {-# LANGUAGE OverloadedStrings, TypeOperators #-}
 
-import qualified Data.ByteString.Base64 as B64
 import qualified Crypto.Hash.MD5 as MD5
 
-import Control.Applicative ((<$>))
 import Control.Concurrent (threadDelay, forkIO)
 import Control.Concurrent.Async
 import Control.Exception (SomeException)
-import qualified Control.Exception as E
 import Control.Monad (forever, forM_, when)
-import Data.ASN1.Error (ASN1Error)
 import qualified Data.Binary as B
 import Data.Binary.Get (ByteOffset)
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString as BS
-import Data.ASN1.Types.String
 import Data.Either
 import Data.Maybe
-import Data.X509
 import Database.PostgreSQL.Simple
 import Prelude hiding (repeat)
 import Network.CertificateTransparency.Db
@@ -41,7 +35,6 @@ main = do
     _ <- forkIO . everySeconds 59 $ catchAny pollLogServersForSth logException
     _ <- forkIO . everySeconds 157 $ catchAny processSth logException
     _ <- forkIO . everySeconds 31 $ catchAny syncLogEntries logException
-    _ <- forkIO . everySeconds 17 $ catchAny processLogEntries logException
     forever $ threadDelay (10*1000*1000)
 
     where
@@ -79,20 +72,6 @@ main = do
         certToEntryType :: Cert' -> Int
         certToEntryType (ASN1Cert' s) = 0
         certToEntryType (PreCert' s) = 1
-
-        processLogEntries :: IO ()
-        processLogEntries = do
-            conn <- connect connectInfo
-            servers <- logServers conn
-            forM_ servers $ \server -> do
-                entries <- lookupUnprocessedLogEntries conn server
-                mapM_ (\(Only i :. le) -> processLogEntry conn server i le) entries
-            close conn
-
-        processLogEntry :: Connection -> LogServer -> Int -> LogEntryDb -> IO ()
-        processLogEntry conn logServer idx logEntry = do
-            name <- extractDistinguishedName logEntry
-            updateDomainOfLogEntry conn logServer idx name
 
         pollLogServersForSth :: IO ()
         pollLogServersForSth = do
@@ -137,7 +116,6 @@ main = do
         isGood (Just b) = b
         isGood Nothing  = False
 
-        everyMinutes n a = forever $ a >> threadDelay (n*60*1000*1000)
         everySeconds n a = forever $ a >> threadDelay (n*1000*1000)
 
         setupLogging :: IO ()
@@ -161,30 +139,5 @@ repeat initial currentTime backoffFunction action = do
     let nextTime = if res then initial else backoffFunction currentTime
     repeat initial nextTime backoffFunction action
 
-extractDistinguishedName :: LogEntryDb -> IO String
-extractDistinguishedName logEntry = do
-    E.catch (do
-                let rawCert = logEntryDbCert logEntry
-                let sd = decodeSignedCertificate $ rawCert
-                case sd of
-                    Left s -> do
-                        errorM "ct-watch-sync" $ "Failed decoding certificate: " ++ show (B64.encode rawCert) ++ " with error " ++ show s
-                        return "decodeSignedCert-FAILED"
-                    Right c' -> do
-                        let c = getCertificate c'
-                        let dn = certSubjectDN c
-                        let san = [x | AltNameDNS x <- concat . map (\(ExtSubjectAltName e) -> e) . maybeToList . extensionGet . certExtensions $ c :: [AltName]]
-                        str <- E.evaluate $ (concat . map (maybeToList . asn1CharacterToString) . filter canDecode . map snd . getDistinguishedElements $ dn) ++ san
-                        return $ if (null str)
-                            then "noSANs-FAILED"
-                            else last str
-        ) (\e -> do
-                    errorM "sync" $ "ffff" ++ show (e :: ASN1Error)
-                    return "genericasn1-FAILED"
-          )
-
 extractCert :: LogEntry -> Either (BSL.ByteString, ByteOffset, String) Cert'
 extractCert logEntry = (\(_, _, m) -> cert' . timestampedEntry' $ m) <$> (B.decodeOrFail . BSL.pack . BS.unpack . logEntryLeafInput $ logEntry)
-
-canDecode :: ASN1CharacterString -> Bool
-canDecode (ASN1CharacterString e _) = e `elem` [IA5, UTF8, Printable, T61]
