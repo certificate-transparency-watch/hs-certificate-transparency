@@ -29,23 +29,23 @@ instance B.Binary TimestampedEntry' where
 
         case et of
             X509Entry -> do
-                a <- B.get :: B.Get Word8
-                b <- B.get :: B.Get Word8
-                c <- B.get :: B.Get Word8
-                let len = 2^16 * (fromIntegral a) + 2^8 * (fromIntegral b) + (fromIntegral c)
-
-                c' <- getLazyByteString len
-
-                return $ TimestampedEntry' ts et (ASN1Cert' c')
+                c <- getVariableLengthMember
+                return $ TimestampedEntry' ts et (ASN1Cert' c)
             PrecertEntry -> do
                 _ <- getLazyByteString 32
-                a <- B.get :: B.Get Word8
-                b <- B.get :: B.Get Word8
-                c <- B.get :: B.Get Word8
-                let len = 2^16 * (fromIntegral a) + 2^8*(fromIntegral b) + (fromIntegral c)
-
-                c'' <- getLazyByteString len
-
-                return $ TimestampedEntry' ts et (PreCert' c'')
+                c <- getVariableLengthMember
+                return $ TimestampedEntry' ts et (PreCert' c)
 
     put = undefined
+
+
+getVariableLengthMember =  do
+    len <- getWord24
+    getLazyByteString len
+
+getWord24 = do
+    a <- B.get :: B.Get Word8
+    b <- B.get :: B.Get Word8
+    c <- B.get :: B.Get Word8
+    return $ 2^16 * (fromIntegral a) + 2^8*(fromIntegral b) + (fromIntegral c)
+    
