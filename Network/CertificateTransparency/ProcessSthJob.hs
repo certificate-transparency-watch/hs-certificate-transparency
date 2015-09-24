@@ -6,7 +6,6 @@ import Control.Monad (forM_)
 import Database.PostgreSQL.Simple
 import Network.CertificateTransparency.Db
 import Network.CertificateTransparency.LogServerApi
-import Network.CertificateTransparency.StructParser()
 import Network.CertificateTransparency.Verification
 import Prelude hiding (log)
 import System.Log.Logger
