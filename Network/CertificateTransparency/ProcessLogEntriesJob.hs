@@ -4,7 +4,7 @@ module Network.CertificateTransparency.ProcessLogEntriesJob (
 
 import qualified Control.Exception as E
 import qualified Data.ByteString.Base64 as B64
-import Control.Monad (forever, forM_, when)
+import Control.Monad (forM_)
 import Data.X509
 import Network.CertificateTransparency.Db
 import System.Log.Logger

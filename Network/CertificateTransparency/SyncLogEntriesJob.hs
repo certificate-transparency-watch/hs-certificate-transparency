@@ -53,7 +53,7 @@ syncLogEntriesForLog conn logServer = do
 
             mapM_ (insertCert conn) (map extractByteString certs)
 
-            let parameters = map (\(cert, i) -> (logServerId logServer, i, certToEntryType cert, Binary . MD5.hashlazy . extractByteString $ cert)) $ zip certs [start..end]
+            let parameters = map (\(crt, i) -> (logServerId logServer, i, certToEntryType crt, Binary . MD5.hashlazy . extractByteString $ crt)) $ zip certs [start..end]
             _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, log_entry_type, cert_md5) VALUES (?, ?, ?, ?)" parameters
             return True
         Nothing -> debugM "sync" "No entries" >> return False

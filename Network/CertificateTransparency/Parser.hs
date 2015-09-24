@@ -2,7 +2,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Network.CertificateTransparency.Parser where
 
-import Control.Applicative ((<*>), (<$>))
 import Control.Monad
 import Data.Aeson
 import qualified Data.ByteString.Base64 as B64

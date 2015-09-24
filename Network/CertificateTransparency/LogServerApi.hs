@@ -5,7 +5,6 @@ module Network.CertificateTransparency.LogServerApi
     , getEntries
     ) where
 
-import Control.Applicative
 import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as BSLC
 import Network.HTTP.Conduit

@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, TypeOperators #-}
+{-# LANGUAGE OverloadedStrings, RankNTypes, TypeOperators #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Network.CertificateTransparency.Db
     ( logServers
@@ -13,7 +13,6 @@ module Network.CertificateTransparency.Db
     , lookupUnverifiedSth
     ) where
 
-import Control.Applicative
 import Control.Monad
 import qualified Crypto.Hash.MD5 as MD5
 import qualified Data.ByteString as BS
@@ -96,6 +95,7 @@ lookupUnverifiedSth conn ls = do
 first :: (a :. b) -> a
 first (a :. _) = a
 
+only :: forall t. Only t -> t
 only (Only a) = a
 
 instance ToRow SignedTreeHead where
