@@ -6,6 +6,7 @@ module Network.CertificateTransparency.Db
     , updateDomainOfLogEntry
     , lookupUnprocessedLogEntries
     , insertCert
+    , insertLogEntries
     , sthExists
     , insertSth
     , lookupKnownGoodSth
@@ -25,6 +26,12 @@ import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.ToRow
 
 import Network.CertificateTransparency.Types
+
+insertLogEntries :: Connection -> [(Int, Int, Int, Binary BS.ByteString)] -> IO ()
+insertLogEntries conn xs = do
+    let sql = "INSERT INTO log_entry (log_server_id, idx, log_entry_type, cert_md5) VALUES (?, ?, ?, ?)"
+    _ <- executeMany conn sql xs
+    return ()
 
 insertCert :: Connection -> BSL.ByteString -> IO ()
 insertCert conn bs = do
