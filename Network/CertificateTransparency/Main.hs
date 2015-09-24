@@ -72,8 +72,8 @@ main = do
         extractByteString (PreCert' s) = s
 
         certToEntryType :: Cert' -> Int
-        certToEntryType (ASN1Cert' s) = 0
-        certToEntryType (PreCert' s) = 1
+        certToEntryType (ASN1Cert' _) = 0
+        certToEntryType (PreCert' _) = 1
 
 
 
@@ -120,7 +120,6 @@ main = do
         isGood (Just b) = b
         isGood Nothing  = False
 
-        everyMinutes n a = forever $ a >> threadDelay (n*60*1000*1000)
         everySeconds n a = forever $ a >> threadDelay (n*1000*1000)
 
         setupLogging :: IO ()
