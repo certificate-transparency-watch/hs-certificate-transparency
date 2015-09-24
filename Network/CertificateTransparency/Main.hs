@@ -1,14 +1,14 @@
-{-# LANGUAGE OverloadedStrings, TypeOperators #-}
+{-# LANGUAGE TypeOperators #-}
 
 import Control.Concurrent (threadDelay, forkIO)
 import Control.Monad (forever, forM_)
 import Database.PostgreSQL.Simple
 import Network.CertificateTransparency.Db
 import Network.CertificateTransparency.LogServerApi
+import Network.CertificateTransparency.PollLogServersForSthJob
 import Network.CertificateTransparency.ProcessLogEntriesJob
 import Network.CertificateTransparency.StructParser()
 import Network.CertificateTransparency.SyncLogEntriesJob
-import Network.CertificateTransparency.Types
 import Network.CertificateTransparency.Util
 import Network.CertificateTransparency.Verification
 import System.Log.Logger
@@ -24,33 +24,13 @@ connectInfo = defaultConnectInfo {
 main :: IO ()
 main = do
     setupLogging
-    _ <- forkIO . everySeconds 59 $ catchAny pollLogServersForSth logException
+    _ <- forkIO . everySeconds 59 $ catchAny (pollLogServersForSth connectInfo) logException
     _ <- forkIO . everySeconds 157 $ catchAny processSth logException
     _ <- forkIO . everySeconds 31 $ catchAny (syncLogEntries connectInfo) logException
     _ <- forkIO . everySeconds 17 $ catchAny (processLogEntries connectInfo) logException
     forever $ threadDelay (10*1000*1000)
 
     where
-
-        pollLogServersForSth :: IO ()
-        pollLogServersForSth = do
-            debugM "poller" "Polling..."
-            conn <- connect connectInfo
-            servers <- logServers conn
-            mapM_ (pollLogServerForSth conn) servers
-            close conn
-
-        pollLogServerForSth :: Connection -> LogServer -> IO ()
-        pollLogServerForSth conn logServer = do
-            sth <- getSth logServer
-            case sth of
-                Just sth' -> withTransaction conn $ do
-                    sthExists' <- sthExists conn sth'
-                    if (not sthExists')
-                        then insertSth conn sth' logServer >> return ()
-                        else return ()
-                Nothing   -> return ()
-
 
         processSth :: IO ()
         processSth = do
