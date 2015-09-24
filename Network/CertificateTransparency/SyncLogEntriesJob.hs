@@ -32,7 +32,7 @@ syncLogEntries connectInfo = do
 
 repeat :: Int -> Int -> (Int -> Int) -> IO Bool -> IO Bool
 repeat initial currentTime backoffFunction action = do
-    threadDelay $ currentTime*999
+    threadDelay $ currentTime*1000
     res <- catchAny action (\e -> logException e >> return False)
     let nextTime = if res then initial else backoffFunction currentTime
     repeat initial nextTime backoffFunction action
