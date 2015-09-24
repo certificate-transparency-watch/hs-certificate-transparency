@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeOperators #-}
-
 import Control.Concurrent (threadDelay, forkIO)
 import Control.Monad (forever)
 import Database.PostgreSQL.Simple
