@@ -37,9 +37,13 @@ repeat initial currentTime backoffFunction action = do
     let nextTime = if res then initial else backoffFunction currentTime
     repeat initial nextTime backoffFunction action
 
+-- |Find the next log entry that we expect, query the log server
+-- for that and the next 2000 log entries, and write those to the DB.
+-- Returns whether the log server had new log entries.
 syncLogEntriesForLog :: Connection -> LogServer -> IO Bool
 syncLogEntriesForLog conn logServer = do
     debugM "sync" $ "Syncing " ++ show logServer
+
     start <- fmap (fromMaybe 0) $ nextLogServerEntryForLogServer conn logServer
     let end = start + 2000
 
@@ -47,8 +51,7 @@ syncLogEntriesForLog conn logServer = do
     case entries' of
         Just entries -> do
             let certs' = map extractCert entries
-            when (not . null . lefts $ certs') (error . show . lefts $ certs')
-
+            abortIfAnyCertsFailedToParse certs'
             let certs = rights certs'
 
             mapM_ (insertCert conn) (map extractByteString certs)
@@ -56,7 +59,19 @@ syncLogEntriesForLog conn logServer = do
             let parameters = map (\(crt, i) -> (logServerId logServer, i, certToEntryType crt, Binary . MD5.hashlazy . extractByteString $ crt)) $ zip certs [start..end]
             _ <- executeMany conn "INSERT INTO log_entry (log_server_id, idx, log_entry_type, cert_md5) VALUES (?, ?, ?, ?)" parameters
             return True
-        Nothing -> debugM "sync" "No entries" >> return False
+        Nothing -> do
+            debugM "sync" "No entries"
+            return False
+
+    where
+        abortIfAnyCertsFailedToParse :: [Either (BSL.ByteString, ByteOffset, String) Cert'] -> IO ()
+        abortIfAnyCertsFailedToParse certs = do
+            let numOfCertsThatFailedToParse = length . lefts $ certs
+            when (numOfCertsThatFailedToParse > 0) $ do
+                errorM "sync" (show numOfCertsThatFailedToParse ++ " certificates returned by " ++ show logServer ++ " failed to be parsed as certificates by the X509 library: " ++ (show $ lefts $ certs))
+                error "Exiting. A cert failing to parse needs manually intervention, such as raising a bug against the X509 library."
+
+
 
 extractCert :: LogEntry -> Either (BSL.ByteString, ByteOffset, String) Cert'
 extractCert logEntry = (\(_, _, m) -> cert' . timestampedEntry' $ m) <$> (B.decodeOrFail . BSL.pack . BS.unpack . logEntryLeafInput $ logEntry)
