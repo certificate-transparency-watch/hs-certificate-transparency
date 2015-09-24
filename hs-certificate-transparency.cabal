@@ -16,7 +16,7 @@ executable hs-certificate-transparency
   -- other-modules:       
   GHC-Options:         -Wall
   build-depends:       base == 4.8.*
-                     , aeson == 0.8.*
+                     , aeson == 0.9.*
                      , asn1-encoding == 0.9.*
                      , asn1-types == 0.3.*
                      , async == 2.0.*
@@ -31,6 +31,7 @@ executable hs-certificate-transparency
                      , network-uri == 2.6.*
                      , postgresql-simple == 0.4.*
                      , text == 1.2.*
+                     , tls >= 1.3.3
                      , x509 == 1.6.*
 
 test-suite tests
