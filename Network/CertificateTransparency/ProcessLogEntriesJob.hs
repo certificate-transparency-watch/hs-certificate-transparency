@@ -23,7 +23,7 @@ processLogEntries connectInfo = do
 
 processLogEntry :: Connection -> LogServer -> Int -> LogEntryDb -> IO ()
 processLogEntry conn logServer idx logEntry = do
-    name <- extractDistinguishedName logEntry
+    name <- extractDomainNames logEntry
     updateDomainOfLogEntry conn logServer idx (either renderFailureToDBString id name)
 
 data CertExtractionFailure = NoSANs | InvalidCert | ASN1Failure
@@ -33,8 +33,8 @@ renderFailureToDBString NoSANs = "noSANs-FAILED"
 renderFailureToDBString InvalidCert = "decodeSignedCert-FAILED"
 renderFailureToDBString ASN1Failure = "genericasn1-FAILED"
 
-extractDistinguishedName'' :: SignedCertificate -> [String]
-extractDistinguishedName'' c' = commonName ++ sans
+extractDomainNames'' :: SignedCertificate -> [String]
+extractDomainNames'' c' = commonName ++ sans
     where
         c = getCertificate c'
         subjectDn = certSubjectDN c
@@ -43,8 +43,8 @@ extractDistinguishedName'' c' = commonName ++ sans
         canDecode (ASN1CharacterString e _) = e `elem` [IA5, UTF8, Printable, T61]
 
 
-extractDistinguishedName' :: LogEntryDb -> Either CertExtractionFailure String
-extractDistinguishedName' logEntry = domain
+extractDomainNames' :: LogEntryDb -> Either CertExtractionFailure String
+extractDomainNames' logEntry = domain
         where
             rawCert = logEntryDbCert logEntry
             sd = decodeSignedCertificate rawCert
@@ -54,9 +54,9 @@ extractDistinguishedName' logEntry = domain
                         then Left NoSANs
                         else Right $ last domains
                     where
-                        domains = extractDistinguishedName'' crt
+                        domains = extractDomainNames'' crt
 
 
-extractDistinguishedName :: LogEntryDb -> IO (Either CertExtractionFailure String)
-extractDistinguishedName logEntry = E.catch (return $ extractDistinguishedName' logEntry)
+extractDomainNames :: LogEntryDb -> IO (Either CertExtractionFailure String)
+extractDomainNames logEntry = E.catch (return $ extractDomainNames' logEntry)
                                             (\e -> let _ = (e :: ASN1Error) in return $ Left ASN1Failure)
