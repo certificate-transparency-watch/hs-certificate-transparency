@@ -1,6 +1,7 @@
 import Control.Concurrent (threadDelay, forkIO)
 import Control.Monad (forever)
 import Database.PostgreSQL.Simple
+import Network.CertificateTransparency.LogServers
 import Network.CertificateTransparency.PollLogServersForSthJob
 import Network.CertificateTransparency.ProcessLogEntriesJob
 import Network.CertificateTransparency.ProcessSthJob

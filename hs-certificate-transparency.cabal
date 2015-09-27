@@ -14,7 +14,7 @@ cabal-version:       >=1.8
 executable hs-certificate-transparency
   main-is:             Network/CertificateTransparency/Main.hs
   -- other-modules:       
-  GHC-Options:         -Wall -Werror -fno-warn-type-defaults -fno-warn-deprecations
+  GHC-Options:         -Wall -Werror -fno-warn-type-defaults -fno-warn-deprecations -fno-warn-unused-imports
   build-depends:       base == 4.8.*
                      , aeson == 0.9.*
                      , asn1-encoding == 0.9.*
@@ -24,6 +24,7 @@ executable hs-certificate-transparency
                      , binary == 0.7.*
                      , bytestring == 0.10.*
                      , cryptohash == 0.11.*
+                     , cryptonite
                      , hslogger == 1.2.*
                      , http-conduit == 2.1.*
                      , http-types == 0.8.*
