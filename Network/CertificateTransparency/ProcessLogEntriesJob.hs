@@ -26,7 +26,7 @@ processLogEntries connectInfo = do
 processLogEntry :: Connection -> LogServer -> Int -> LogEntryDb -> IO ()
 processLogEntry conn logServer idx logEntry = do
     name <- extractDistinguishedName logEntry
-    updateDomainOfLogEntry conn logServer idx (collapseEither $ mapLeft renderFailureToDBString name)
+    updateDomainOfLogEntry conn logServer idx (either renderFailureToDBString id name)
 
 data CertExtractionFailure = NoSANs | InvalidCert | ASN1Failure
 
@@ -62,10 +62,6 @@ extractDistinguishedName' logEntry = domain
 extractDistinguishedName :: LogEntryDb -> IO (Either CertExtractionFailure String)
 extractDistinguishedName logEntry = E.catch (return $ extractDistinguishedName' logEntry)
                                             (\e -> let _ = (e :: ASN1Error) in return $ Left ASN1Failure)
-
-mapLeft :: (a -> b) -> Either a c -> Either b c
-mapLeft f (Left x) = Left $ f x
-mapLeft _ (Right x) = Right x
 
 collapseEither :: forall c. Either c c -> c
 collapseEither = either id id
