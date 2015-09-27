@@ -3,11 +3,9 @@ module Network.CertificateTransparency.ProcessLogEntriesJob (
 ) where
 
 import qualified Control.Exception as E
-import qualified Data.ByteString.Base64 as B64
 import Control.Monad (forM_)
 import Data.X509
 import Network.CertificateTransparency.Db
-import System.Log.Logger
 import Data.ASN1.Error (ASN1Error)
 import Network.CertificateTransparency.Types
 import Data.Maybe (maybeToList)
@@ -28,26 +26,33 @@ processLogEntry conn logServer idx logEntry = do
     name <- extractDistinguishedName logEntry
     updateDomainOfLogEntry conn logServer idx name
 
-extractDistinguishedName' :: LogEntryDb -> String
-extractDistinguishedName' logEntry = if (null str)
-    then "noSANs-FAILED"
-    else last str
+data CertExtractionFailure = NoSANs | InvalidCert
+
+extractDistinguishedName' :: LogEntryDb -> Either CertExtractionFailure String
+extractDistinguishedName' logEntry = res
         where
             rawCert = logEntryDbCert logEntry
             sd = decodeSignedCertificate $ rawCert
-            str = case sd of
-                Left s -> do
-                    ["decodeSignedCert-FAILED"]
-                Right c' -> do
-                    let c = getCertificate c'
-                    let dn = certSubjectDN c
-                    let san = [x | AltNameDNS x <- concat . map (\(ExtSubjectAltName e) -> e) . maybeToList . extensionGet . certExtensions $ c :: [AltName]]
-                    (concat . map (maybeToList . asn1CharacterToString) . filter canDecode . map snd . getDistinguishedElements $ dn) ++ san
+            res = case sd of
+                Left _ -> Left InvalidCert
+                Right c' -> if (null res'')
+                        then Left NoSANs
+                        else Right $ last res''
+                    where
+                        c = getCertificate c'
+                        dn = certSubjectDN c
+                        san = [x | AltNameDNS x <- concat . map (\(ExtSubjectAltName e) -> e) . maybeToList . extensionGet . certExtensions $ c :: [AltName]]
+                        res'' = (concat . map (maybeToList . asn1CharacterToString) . filter canDecode . map snd . getDistinguishedElements $ dn) ++ san
+
 
 extractDistinguishedName :: LogEntryDb -> IO String
 extractDistinguishedName logEntry = do
-    E.catch (return $ extractDistinguishedName' logEntry)
-        (\e -> let _ = (e :: ASN1Error) in return "genericasn1-FAILED")
+    E.catch (return $ case extractDistinguishedName' logEntry of
+                        Left NoSANs -> "noSANs-FAILED"
+                        Left InvalidCert -> "decodeSignedCert-FAILED"
+                        Right s -> s
+            )
+            (\e -> let _ = (e :: ASN1Error) in return "genericasn1-FAILED")
 
 canDecode :: ASN1CharacterString -> Bool
 canDecode (ASN1CharacterString e _) = e `elem` [IA5, UTF8, Printable, T61]
