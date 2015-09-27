@@ -28,27 +28,26 @@ processLogEntry conn logServer idx logEntry = do
     name <- extractDistinguishedName logEntry
     updateDomainOfLogEntry conn logServer idx name
 
+extractDistinguishedName' :: LogEntryDb -> String
+extractDistinguishedName' logEntry = if (null str)
+    then "noSANs-FAILED"
+    else last str
+        where
+            rawCert = logEntryDbCert logEntry
+            sd = decodeSignedCertificate $ rawCert
+            str = case sd of
+                Left s -> do
+                    ["decodeSignedCert-FAILED"]
+                Right c' -> do
+                    let c = getCertificate c'
+                    let dn = certSubjectDN c
+                    let san = [x | AltNameDNS x <- concat . map (\(ExtSubjectAltName e) -> e) . maybeToList . extensionGet . certExtensions $ c :: [AltName]]
+                    (concat . map (maybeToList . asn1CharacterToString) . filter canDecode . map snd . getDistinguishedElements $ dn) ++ san
+
 extractDistinguishedName :: LogEntryDb -> IO String
 extractDistinguishedName logEntry = do
-    E.catch (do
-                let rawCert = logEntryDbCert logEntry
-                let sd = decodeSignedCertificate $ rawCert
-                case sd of
-                    Left s -> do
-                        errorM "ct-watch-sync" $ "Failed decoding certificate: " ++ show (B64.encode rawCert) ++ " with error " ++ show s
-                        return "decodeSignedCert-FAILED"
-                    Right c' -> do
-                        let c = getCertificate c'
-                        let dn = certSubjectDN c
-                        let san = [x | AltNameDNS x <- concat . map (\(ExtSubjectAltName e) -> e) . maybeToList . extensionGet . certExtensions $ c :: [AltName]]
-                        str <- E.evaluate $ (concat . map (maybeToList . asn1CharacterToString) . filter canDecode . map snd . getDistinguishedElements $ dn) ++ san
-                        return $ if (null str)
-                            then "noSANs-FAILED"
-                            else last str
-        ) (\e -> do
-                    errorM "sync" $ "ffff" ++ show (e :: ASN1Error)
-                    return "genericasn1-FAILED"
-          )
+    E.catch (return $ extractDistinguishedName' logEntry)
+        (\e -> let _ = (e :: ASN1Error) in return "genericasn1-FAILED")
 
 canDecode :: ASN1CharacterString -> Bool
 canDecode (ASN1CharacterString e _) = e `elem` [IA5, UTF8, Printable, T61]
