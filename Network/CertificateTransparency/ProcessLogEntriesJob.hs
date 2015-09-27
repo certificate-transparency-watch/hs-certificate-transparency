@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes #-}
+
 module Network.CertificateTransparency.ProcessLogEntriesJob (
     processLogEntries
 ) where
@@ -24,9 +26,14 @@ processLogEntries connectInfo = do
 processLogEntry :: Connection -> LogServer -> Int -> LogEntryDb -> IO ()
 processLogEntry conn logServer idx logEntry = do
     name <- extractDistinguishedName logEntry
-    updateDomainOfLogEntry conn logServer idx name
+    updateDomainOfLogEntry conn logServer idx (collapseEither $ mapLeft renderFailureToDBString name)
 
-data CertExtractionFailure = NoSANs | InvalidCert
+data CertExtractionFailure = NoSANs | InvalidCert | ASN1Failure
+
+renderFailureToDBString :: CertExtractionFailure -> String
+renderFailureToDBString NoSANs = "noSANs-FAILED"
+renderFailureToDBString InvalidCert = "decodeSignedCert-FAILED"
+renderFailureToDBString ASN1Failure = "genericasn1-FAILED"
 
 extractDistinguishedName'' :: SignedCertificate -> [String]
 extractDistinguishedName'' c' = commonName ++ sans
@@ -39,24 +46,26 @@ extractDistinguishedName'' c' = commonName ++ sans
 
 
 extractDistinguishedName' :: LogEntryDb -> Either CertExtractionFailure String
-extractDistinguishedName' logEntry = res
+extractDistinguishedName' logEntry = domain
         where
             rawCert = logEntryDbCert logEntry
-            sd = decodeSignedCertificate $ rawCert
-            res = case sd of
+            sd = decodeSignedCertificate rawCert
+            domain = case sd of
                 Left _ -> Left InvalidCert
-                Right c' -> if (null res'')
+                Right crt -> if (null domains)
                         then Left NoSANs
-                        else Right $ last res''
+                        else Right $ last domains
                     where
-                        res'' = extractDistinguishedName'' c'
+                        domains = extractDistinguishedName'' crt
 
 
-extractDistinguishedName :: LogEntryDb -> IO String
-extractDistinguishedName logEntry = do
-    E.catch (return $ case extractDistinguishedName' logEntry of
-                        Left NoSANs -> "noSANs-FAILED"
-                        Left InvalidCert -> "decodeSignedCert-FAILED"
-                        Right s -> s
-            )
-            (\e -> let _ = (e :: ASN1Error) in return "genericasn1-FAILED")
+extractDistinguishedName :: LogEntryDb -> IO (Either CertExtractionFailure String)
+extractDistinguishedName logEntry = E.catch (return $ extractDistinguishedName' logEntry)
+                                            (\e -> let _ = (e :: ASN1Error) in return $ Left ASN1Failure)
+
+mapLeft :: (a -> b) -> Either a c -> Either b c
+mapLeft f (Left x) = Left $ f x
+mapLeft _ (Right x) = Right x
+
+collapseEither :: forall c. Either c c -> c
+collapseEither = either id id
