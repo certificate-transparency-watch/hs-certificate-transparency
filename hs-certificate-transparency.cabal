@@ -44,7 +44,7 @@ test-suite tests
                   , HUnit == 1.2.*
                   , tasty-quickcheck == 0.8.*
                   , base == 4.8.*
-                  , aeson == 0.8.*
+                  , aeson == 0.9.*
                   , base64-bytestring == 1.0.*
                   , bytestring == 0.10.*
                   , cryptohash == 0.11.*
