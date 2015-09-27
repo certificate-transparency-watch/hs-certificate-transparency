@@ -1,5 +1,3 @@
-{-# LANGUAGE RankNTypes #-}
-
 module Network.CertificateTransparency.ProcessLogEntriesJob (
     processLogEntries
 ) where
@@ -62,6 +60,3 @@ extractDistinguishedName' logEntry = domain
 extractDistinguishedName :: LogEntryDb -> IO (Either CertExtractionFailure String)
 extractDistinguishedName logEntry = E.catch (return $ extractDistinguishedName' logEntry)
                                             (\e -> let _ = (e :: ASN1Error) in return $ Left ASN1Failure)
-
-collapseEither :: forall c. Either c c -> c
-collapseEither = either id id
