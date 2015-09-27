@@ -3,8 +3,10 @@ module Network.CertificateTransparency.StructParser
     (
     ) where
 
+import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Binary as B
 import Data.Binary.Get
+import Data.Int
 import Data.Word
 
 import Network.CertificateTransparency.Types
@@ -39,10 +41,12 @@ instance B.Binary TimestampedEntry' where
     put = undefined
 
 
+getVariableLengthMember :: Get LBS.ByteString
 getVariableLengthMember =  do
     len <- getWord24
     getLazyByteString len
 
+getWord24 :: Get Int64
 getWord24 = do
     a <- B.get :: B.Get Word8
     b <- B.get :: B.Get Word8
