@@ -28,6 +28,15 @@ processLogEntry conn logServer idx logEntry = do
 
 data CertExtractionFailure = NoSANs | InvalidCert
 
+extractDistinguishedName'' :: SignedCertificate -> [String]
+extractDistinguishedName'' cert = commonName ++ sans
+    where
+        c = getCertificate cert
+        subjectDn = certSubjectDN c
+        sans = [x | AltNameDNS x <- concat . map (\(ExtSubjectAltName e) -> e) . maybeToList . extensionGet . certExtensions $ c :: [AltName]]
+        commonName = concat . map (maybeToList . asn1CharacterToString) . filter canDecode . map snd . getDistinguishedElements $ subjectDn
+
+
 extractDistinguishedName' :: LogEntryDb -> Either CertExtractionFailure String
 extractDistinguishedName' logEntry = res
         where
@@ -39,10 +48,7 @@ extractDistinguishedName' logEntry = res
                         then Left NoSANs
                         else Right $ last res''
                     where
-                        c = getCertificate c'
-                        dn = certSubjectDN c
-                        san = [x | AltNameDNS x <- concat . map (\(ExtSubjectAltName e) -> e) . maybeToList . extensionGet . certExtensions $ c :: [AltName]]
-                        res'' = (concat . map (maybeToList . asn1CharacterToString) . filter canDecode . map snd . getDistinguishedElements $ dn) ++ san
+                        res'' = extractDistinguishedName'' c'
 
 
 extractDistinguishedName :: LogEntryDb -> IO String
