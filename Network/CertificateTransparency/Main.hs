@@ -20,10 +20,10 @@ connectInfo = defaultConnectInfo {
 main :: IO ()
 main = do
     setupLogging
-    _ <- forkIO . everySeconds 59 $ catchAny (pollLogServersForSth connectInfo) logException
-    _ <- forkIO . everySeconds 157 $ catchAny (processSth connectInfo) logException
+    _ <- forkIO . everySeconds 157 $ catchAny (pollLogServersForSth connectInfo) logException
+    _ <- forkIO . everySeconds 17 $ catchAny (processSth connectInfo) logException
     _ <- forkIO . everySeconds 31 $ catchAny (syncLogEntries connectInfo) logException
-    _ <- forkIO . everySeconds 17 $ catchAny (processLogEntries connectInfo) logException
+    _ <- forkIO . everySeconds 19 $ catchAny (processLogEntries connectInfo) logException
     forever $ threadDelay (10*1000*1000)
 
     where
