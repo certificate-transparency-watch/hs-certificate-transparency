@@ -23,7 +23,7 @@ merkleTreeRootHash _                    = Nothing
 
 type Hash = ByteString
 buildMerkleTree :: [(Int, Hash)] -> MerkleTree
-buildMerkleTree xs = foldl f Empty (reverse $ sortBy (comparing fst) xs)
+buildMerkleTree = foldl f Empty . reverse . sortBy (comparing fst)
     where
         f :: MerkleTree -> (Int, Hash) -> MerkleTree
         f Empty (i, h)                     = MerkleTree Empty i h Empty
