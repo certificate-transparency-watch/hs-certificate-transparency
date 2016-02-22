@@ -1,4 +1,4 @@
-FROM ubuntu:15.04
+FROM ubuntu:15.10
 MAINTAINER tom@tom-fitzhenry.me.uk
 
 RUN apt-get update
