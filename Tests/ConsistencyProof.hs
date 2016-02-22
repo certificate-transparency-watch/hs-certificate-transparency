@@ -23,7 +23,7 @@ import GooglePilotLogServer
 consistencyProofTestGroup = $(testGroupGenerator)
 
 -- eww
-case_end_to_end_test_against_google_pilot = case_testConsistencyAgainstGooglePilotLogServer
+--case_end_to_end_test_against_google_pilot = case_testConsistencyAgainstGooglePilotLogServer
 
 -- "The number of nodes in the resulting proof is bounded above by
 --  ceil(log2(n)) + 1.)" -- http://tools.ietf.org/html/rfc6962#section-2.1.2
