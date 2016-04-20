@@ -24,7 +24,7 @@ install:
 - stack --no-terminal --skip-ghc-check setup
 - stack build --no-terminal --skip-ghc-check --only-snapshot
 - stack install
-- cp HOME/.local/bin/hs-certificate-transparency .
+- cp $HOME/.local/bin/hs-certificate-transparency .
 
 after_script:
 - docker login -u tomfitzhenry -p $BINTRAY_API_KEY -e tom@tom-fitzhenry.me.uk certificate-transparency-watch-docker-ct-watch-registry.bintray.io
