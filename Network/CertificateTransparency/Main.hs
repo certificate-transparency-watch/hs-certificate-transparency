@@ -13,7 +13,7 @@ connectInfo = defaultConnectInfo {
     connectDatabase = "ct-watch"
   , connectUser = "docker"
   , connectPassword = "docker"
-  , connectHost = "172.17.42.1"
+  , connectHost = "172.17.0.1"
 }
 
 main :: IO ()
