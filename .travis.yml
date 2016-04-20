@@ -1,6 +1,6 @@
 sudo: required
 
-language: haskell
+language: generic
 dist: precise
 group: legacy
 
