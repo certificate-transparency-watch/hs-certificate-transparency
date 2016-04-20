@@ -1,24 +1,26 @@
-sudo: false
+sudo: true
 language: haskell
-
-# Caching so the next build will be fast too.
+services:
+- docker
 cache:
   directories:
   - $HOME/.stack
-
 before_install:
-# Download and unpack the stack executable
-  - mkdir -p ~/.local/bin
-  - export PATH=$HOME/.local/bin:$PATH
-  - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-  - export PATH=/opt/ghc/7.10.2/bin:$PATH
-
+- mkdir -p ~/.local/bin
+- export PATH=$HOME/.local/bin:$PATH
+- travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+- export PATH=/opt/ghc/7.10.2/bin:$PATH
 addons:
   apt:
     sources:
     - hvr-ghc
     packages:
     - ghc-7.10.2
-
 script:
-  - stack --no-terminal --skip-ghc-check test
+- stack --no-terminal --skip-ghc-check test
+- docker login -u tomfitzhenry -p $BINTRAY_API_KEY -e tom@tom-fitzhenry.me.uk certificate-transparency-watch-docker-ct-watch-registry.bintray.io
+- docker build -t certificate-transparency-watch-docker-ct-watch-registry.bintray.io/ct-watch-processor .
+- docker push certificate-transparency-watch-docker-ct-watch-registry.bintray.io/ct-watch-processor
+env:
+  global:
+    secure: SEGcj5038LeXy7Xv+ugOehJBUFmaUnC6XFfs+Eb33cYt5dPGaeLWpDjkmQG7B3Aih+psYDHvI0O63aYBwtaBBukO+zXq6STqlLAom0+r0zMgZ4Sv94F1v2ZmbReNlvkNx2mnfsozOb4OOq+TDIBJ9FQCUlLMGh0sx0RHutHJzxw=
