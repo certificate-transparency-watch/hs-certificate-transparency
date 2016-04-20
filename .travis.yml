@@ -1,6 +1,9 @@
 sudo: required
 
-language: generic
+language: sh
+
+dist: trusty
+group: edge
 
 services:
 - docker
@@ -16,6 +19,10 @@ before_install:
 
 script:
 - stack --no-terminal --skip-ghc-check test
+
+install:
+- stack --no-terminal --skip-ghc-check setup
+- stack build --no-terminal --skip-ghc-check --only-snapshot
 
 after_script:
 - docker login -u tomfitzhenry -p $BINTRAY_API_KEY -e tom@tom-fitzhenry.me.uk certificate-transparency-watch-docker-ct-watch-registry.bintray.io
