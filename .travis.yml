@@ -1,6 +1,8 @@
 sudo: required
 
 language: haskell
+dist: precise
+group: legacy
 
 services:
 - docker
