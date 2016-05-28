@@ -6,7 +6,6 @@ import qualified Control.Exception as E
 import Control.Monad (forM_)
 import Data.X509
 import Network.CertificateTransparency.Db
-import Data.ASN1.Error (ASN1Error)
 import Network.CertificateTransparency.Types
 import Data.Maybe (maybeToList)
 import Database.PostgreSQL.Simple
@@ -58,5 +57,7 @@ extractDomainNames' logEntry = domain
 
 
 extractDomainNames :: LogEntryDb -> IO (Either CertExtractionFailure String)
-extractDomainNames logEntry = E.catch (return $ extractDomainNames' logEntry)
-                                            (\e -> let _ = (e :: ASN1Error) in return $ Left ASN1Failure)
+extractDomainNames logEntry = E.catch (return $ extractDomainNames' logEntry) handler
+    where
+            handler :: E.ErrorCall -> IO (Either CertExtractionFailure String)
+            handler _ = return $ Left ASN1Failure
